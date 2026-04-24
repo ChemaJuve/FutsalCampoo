@@ -1,7 +1,7 @@
 {
   "configuracion": {
     "nombre_juego": "Fútbol Sala Campoo",
-    "version": "1.10",
+    "version": "1.59",
     "divisiones": {
       "1": {
         "nombre": "1ª División",
@@ -605,7 +605,7 @@
     },
     {
       "id": 39,
-      "nombre": "Bárcena Boys",
+      "nombre": "Torina",
       "div": 3,
       "emoji": "⭐",
       "ciudad": "Bárcena",
@@ -831,7 +831,7 @@
         },
         {
           "id": 2,
-          "nombre": "Ernesto Romero",
+          "nombre": "Diego Alejandro Pérez",
           "edad": 20,
           "pos": "POR",
           "stats": {
@@ -871,7 +871,7 @@
         },
         {
           "id": 4,
-          "nombre": "Raúl Cano",
+          "nombre": "Víctor Conde",
           "edad": 33,
           "pos": "ALA",
           "stats": {
@@ -891,7 +891,7 @@
         },
         {
           "id": 5,
-          "nombre": "Iván Ortega",
+          "nombre": "Sebastián Segal",
           "edad": 34,
           "pos": "ALA",
           "stats": {
@@ -911,12 +911,12 @@
         },
         {
           "id": 6,
-          "nombre": "Óscar Torres",
+          "nombre": "Jorge Del Barrio",
           "edad": 35,
-          "pos": "POR",
+          "pos": "CIE",
           "stats": {
-            "porteria": 94,
-            "defensa": 71,
+            "porteria": 84,
+            "defensa": 81,
             "pase": 74,
             "regate": 84,
             "tiro": 75,
@@ -931,9 +931,9 @@
         },
         {
           "id": 7,
-          "nombre": "Luis Ortega",
+          "nombre": "Pablo García",
           "edad": 20,
-          "pos": "POR",
+          "pos": "ALA",
           "stats": {
             "porteria": 79,
             "defensa": 72,
@@ -951,7 +951,7 @@
         },
         {
           "id": 8,
-          "nombre": "Diego Fernández",
+          "nombre": "Saúl Martínez",
           "edad": 18,
           "pos": "ALA",
           "stats": {
@@ -971,7 +971,7 @@
         },
         {
           "id": 9,
-          "nombre": "Ernesto González",
+          "nombre": "Isaac Fernández",
           "edad": 28,
           "pos": "ALA",
           "stats": {
@@ -991,7 +991,7 @@
         },
         {
           "id": 10,
-          "nombre": "César Jiménez",
+          "nombre": "Yedey González",
           "edad": 35,
           "pos": "PIV",
           "stats": {
@@ -1011,9 +1011,9 @@
         },
         {
           "id": 11,
-          "nombre": "Rodrigo Palacio",
+          "nombre": "Pablo Saiz",
           "edad": 19,
-          "pos": "POR",
+          "pos": "PIV",
           "stats": {
             "porteria": 79,
             "defensa": 81,
@@ -2121,7 +2121,7 @@
         },
         {
           "id": 506,
-          "nombre": "Alejandro Barrio",
+          "nombre": "Magno Pop",
           "edad": 22,
           "pos": "ALA",
           "stats": {
@@ -4441,7 +4441,7 @@
         },
         {
           "id": 1501,
-          "nombre": "Roberto Marcos",
+          "nombre": "Dario Xano",
           "edad": 20,
           "pos": "POR",
           "stats": {
@@ -4461,7 +4461,7 @@
         },
         {
           "id": 1502,
-          "nombre": "Samuel Cifuentes",
+          "nombre": "Pablo Cubillo",
           "edad": 31,
           "pos": "CIE",
           "stats": {
@@ -4541,7 +4541,7 @@
         },
         {
           "id": 1506,
-          "nombre": "Pelayo Torres",
+          "nombre": "Samuel Cifuentes",
           "edad": 28,
           "pos": "PIV",
           "stats": {
@@ -4601,7 +4601,7 @@
         },
         {
           "id": 1509,
-          "nombre": "Pedro Martínez",
+          "nombre": "Miguel De Celis",
           "edad": 35,
           "pos": "ALA",
           "stats": {
@@ -4621,7 +4621,7 @@
         },
         {
           "id": 1510,
-          "nombre": "Tomás López",
+          "nombre": "Jorge Tezanos",
           "edad": 18,
           "pos": "PIV",
           "stats": {
@@ -4641,7 +4641,7 @@
         },
         {
           "id": 1511,
-          "nombre": "Ignacio Prada",
+          "nombre": "David Fernández",
           "edad": 20,
           "pos": "CIE",
           "stats": {
@@ -13520,17 +13520,17 @@
         "edad": 23,
         "pos": "CIE",
         "stats": {
-          "porteria": 18,
-          "defensa": 67,
-          "pase": 36,
-          "regate": 36,
-          "tiro": 59,
-          "fisico": 60,
-          "velocidad": 40,
-          "liderazgo": 43,
-          "experiencia": 65
+          "porteria": 23,
+          "defensa": 72,
+          "pase": 41,
+          "regate": 41,
+          "tiro": 64,
+          "fisico": 65,
+          "velocidad": 45,
+          "liderazgo": 48,
+          "experiencia": 70
         },
-        "potencial": 65,
+        "potencial": 70,
         "valor": 32,
         "salario": 1
       },
@@ -13540,19 +13540,19 @@
         "edad": 34,
         "pos": "ALA",
         "stats": {
-          "porteria": 31,
-          "defensa": 24,
-          "pase": 31,
-          "regate": 42,
-          "tiro": 50,
-          "fisico": 43,
-          "velocidad": 36,
-          "liderazgo": 58,
-          "experiencia": 73
+          "porteria": 36,
+          "defensa": 29,
+          "pase": 36,
+          "regate": 47,
+          "tiro": 55,
+          "fisico": 48,
+          "velocidad": 41,
+          "liderazgo": 63,
+          "experiencia": 78
         },
-        "potencial": 62,
-        "valor": 12,
-        "salario": 1
+        "potencial": 67,
+        "valor": 14,
+        "salario": 3
       },
       {
         "id": 9009,
@@ -13640,17 +13640,17 @@
         "edad": 18,
         "pos": "ALA",
         "stats": {
-          "porteria": 34,
-          "defensa": 47,
-          "pase": 37,
-          "regate": 70,
-          "tiro": 59,
-          "fisico": 41,
-          "velocidad": 58,
-          "liderazgo": 40,
-          "experiencia": 43
+          "porteria": 39,
+          "defensa": 52,
+          "pase": 42,
+          "regate": 75,
+          "tiro": 64,
+          "fisico": 46,
+          "velocidad": 63,
+          "liderazgo": 45,
+          "experiencia": 48
         },
-        "potencial": 62,
+        "potencial": 67,
         "valor": 28,
         "salario": 1
       },
@@ -13660,19 +13660,19 @@
         "edad": 19,
         "pos": "PIV",
         "stats": {
-          "porteria": 52,
-          "defensa": 42,
-          "pase": 48,
-          "regate": 50,
-          "tiro": 55,
-          "fisico": 42,
-          "velocidad": 54,
-          "liderazgo": 20,
-          "experiencia": 40
+          "porteria": 57,
+          "defensa": 47,
+          "pase": 53,
+          "regate": 55,
+          "tiro": 60,
+          "fisico": 47,
+          "velocidad": 59,
+          "liderazgo": 25,
+          "experiencia": 45
         },
-        "potencial": 62,
-        "valor": 31,
-        "salario": 1
+        "potencial": 67,
+        "valor": 33,
+        "salario": 3
       },
       {
         "id": 9015,
@@ -13720,19 +13720,19 @@
         "edad": 21,
         "pos": "ALA",
         "stats": {
-          "porteria": 18,
-          "defensa": 37,
-          "pase": 46,
-          "regate": 55,
-          "tiro": 14,
-          "fisico": 29,
-          "velocidad": 25,
-          "liderazgo": 19,
-          "experiencia": 60
+          "porteria": 23,
+          "defensa": 42,
+          "pase": 51,
+          "regate": 60,
+          "tiro": 19,
+          "fisico": 34,
+          "velocidad": 30,
+          "liderazgo": 24,
+          "experiencia": 65
         },
-        "potencial": 46,
-        "valor": 11,
-        "salario": 1
+        "potencial": 51,
+        "valor": 13,
+        "salario": 3
       },
       {
         "id": 9018,
@@ -13900,19 +13900,19 @@
         "edad": 22,
         "pos": "POR",
         "stats": {
-          "porteria": 59,
-          "defensa": 52,
-          "pase": 37,
-          "regate": 31,
-          "tiro": 38,
-          "fisico": 54,
-          "velocidad": 36,
-          "liderazgo": 49,
-          "experiencia": 53
+          "porteria": 64,
+          "defensa": 57,
+          "pase": 42,
+          "regate": 36,
+          "tiro": 43,
+          "fisico": 59,
+          "velocidad": 41,
+          "liderazgo": 54,
+          "experiencia": 58
         },
-        "potencial": 71,
-        "valor": 16,
-        "salario": 1
+        "potencial": 76,
+        "valor": 18,
+        "salario": 3
       },
       {
         "id": 9027,
@@ -13960,19 +13960,19 @@
         "edad": 18,
         "pos": "ALA",
         "stats": {
-          "porteria": 47,
-          "defensa": 41,
-          "pase": 34,
-          "regate": 60,
-          "tiro": 38,
-          "fisico": 52,
-          "velocidad": 38,
-          "liderazgo": 22,
-          "experiencia": 34
+          "porteria": 52,
+          "defensa": 46,
+          "pase": 39,
+          "regate": 65,
+          "tiro": 43,
+          "fisico": 57,
+          "velocidad": 43,
+          "liderazgo": 27,
+          "experiencia": 39
         },
-        "potencial": 54,
-        "valor": 11,
-        "salario": 1
+        "potencial": 59,
+        "valor": 13,
+        "salario": 3
       },
       {
         "id": 9030,
@@ -14000,19 +14000,19 @@
         "edad": 18,
         "pos": "CIE",
         "stats": {
-          "porteria": 19,
-          "defensa": 56,
-          "pase": 42,
-          "regate": 42,
-          "tiro": 18,
-          "fisico": 38,
-          "velocidad": 26,
-          "liderazgo": 28,
-          "experiencia": 46
+          "porteria": 24,
+          "defensa": 61,
+          "pase": 47,
+          "regate": 47,
+          "tiro": 23,
+          "fisico": 43,
+          "velocidad": 31,
+          "liderazgo": 33,
+          "experiencia": 51
         },
-        "potencial": 48,
-        "valor": 17,
-        "salario": 1
+        "potencial": 53,
+        "valor": 19,
+        "salario": 3
       },
       {
         "id": 9032,
@@ -14020,19 +14020,19 @@
         "edad": 24,
         "pos": "ALA",
         "stats": {
-          "porteria": 31,
-          "defensa": 41,
-          "pase": 44,
-          "regate": 46,
-          "tiro": 31,
-          "fisico": 30,
-          "velocidad": 24,
-          "liderazgo": 36,
-          "experiencia": 60
+          "porteria": 36,
+          "defensa": 46,
+          "pase": 49,
+          "regate": 51,
+          "tiro": 36,
+          "fisico": 35,
+          "velocidad": 29,
+          "liderazgo": 41,
+          "experiencia": 65
         },
-        "potencial": 52,
-        "valor": 12,
-        "salario": 1
+        "potencial": 57,
+        "valor": 14,
+        "salario": 3
       },
       {
         "id": 9033,
@@ -14040,19 +14040,19 @@
         "edad": 31,
         "pos": "CIE",
         "stats": {
-          "porteria": 48,
-          "defensa": 56,
-          "pase": 31,
-          "regate": 28,
-          "tiro": 36,
-          "fisico": 37,
-          "velocidad": 40,
-          "liderazgo": 59,
-          "experiencia": 80
+          "porteria": 53,
+          "defensa": 61,
+          "pase": 36,
+          "regate": 33,
+          "tiro": 41,
+          "fisico": 42,
+          "velocidad": 45,
+          "liderazgo": 64,
+          "experiencia": 85
         },
-        "potencial": 46,
-        "valor": 20,
-        "salario": 1
+        "potencial": 51,
+        "valor": 22,
+        "salario": 3
       },
       {
         "id": 9034,
@@ -14060,19 +14060,19 @@
         "edad": 28,
         "pos": "ALA",
         "stats": {
-          "porteria": 38,
-          "defensa": 44,
-          "pase": 38,
-          "regate": 61,
-          "tiro": 38,
-          "fisico": 58,
-          "velocidad": 40,
-          "liderazgo": 48,
-          "experiencia": 59
+          "porteria": 43,
+          "defensa": 49,
+          "pase": 43,
+          "regate": 66,
+          "tiro": 43,
+          "fisico": 63,
+          "velocidad": 45,
+          "liderazgo": 53,
+          "experiencia": 64
         },
-        "potencial": 56,
-        "valor": 32,
-        "salario": 1
+        "potencial": 61,
+        "valor": 34,
+        "salario": 3
       }
     ]
   },
