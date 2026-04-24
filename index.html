@@ -440,14 +440,14 @@ nav{flex:1;overflow-y:auto;padding:8px 0;}
 #team-badge .escudo-fallback{font-size:1.5rem;}
 
 /* ===== MODO SELECTOR (nueva partida: elegir/crear) ===== */
-#modo-selector{display:none;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:20px;width:100%;max-width:480px;}
+#modo-selector{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:20px;z-index:9100;overflow-y:auto;}
 .modo-card{background:var(--card);border:2px solid var(--borde);border-radius:14px;padding:26px 28px;cursor:pointer;transition:var(--transition);text-align:center;width:100%;}
 .modo-card:hover{border-color:var(--acento);background:var(--bg3);transform:translateY(-2px);}
 .modo-card .mc-icon{font-size:2.6rem;margin-bottom:10px;}
 .modo-card .mc-title{font-family:'Barlow Condensed',sans-serif;font-size:1.3rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
 .modo-card .mc-desc{font-size:.8rem;color:var(--texto2);}
 /* ===== CREADOR DE EQUIPO ===== */
-#crear-equipo-screen{display:none;flex-direction:column;align-items:center;padding:30px 20px 60px;width:100%;max-width:600px;gap:0;}
+#crear-equipo-screen{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;align-items:center;padding:30px 20px 60px;width:100%;gap:0;overflow-y:auto;z-index:9100;}
 .crear-section{background:var(--card);border:1px solid var(--borde);border-radius:12px;padding:18px;margin-bottom:14px;width:100%;}
 .crear-section-title{font-family:'Barlow Condensed',sans-serif;font-size:.95rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--texto2);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--borde);}
 .crear-nombre-input{width:100%;padding:10px 14px;background:var(--bg3);border:2px solid var(--borde);color:var(--texto);border-radius:8px;font-size:1rem;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:1px;text-transform:uppercase;transition:var(--transition);}
@@ -463,6 +463,67 @@ nav{flex:1;overflow-y:auto;padding:8px 0;}
 .jed-input{flex:1;padding:6px 10px;background:var(--bg3);border:1px solid var(--borde);color:var(--texto);border-radius:6px;font-size:.82rem;font-family:'Barlow',sans-serif;}
 .jed-input:focus{border-color:var(--acento);outline:none;}
 .jed-media{font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:900;color:var(--acento);min-width:28px;text-align:right;flex-shrink:0;}
+
+/* ===== MINIJUEGOS CSS ===== */
+#mj-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;backdrop-filter:blur(4px);}
+#mj-modal{background:var(--bg2);border:2px solid var(--borde);border-radius:16px;max-width:480px;width:100%;overflow:hidden;animation:slideUp .3s cubic-bezier(.34,1.56,.64,1);}
+#mj-header{padding:16px 20px;background:linear-gradient(135deg,var(--verde-oscuro),var(--azul));display:flex;align-items:center;justify-content:space-between;}
+#mj-header h2{font-family:'Barlow Condensed',sans-serif;font-size:1.3rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;color:#fff;}
+#mj-body{padding:22px 20px;}
+#mj-footer{padding:12px 20px;border-top:1px solid var(--borde);text-align:center;}
+/* Físico – Reacción */
+#mj-fisico-arena{display:flex;flex-direction:column;align-items:center;gap:16px;}
+#mj-circulo-wrap{position:relative;width:130px;height:130px;display:flex;align-items:center;justify-content:center;}
+#mj-circulo{width:110px;height:110px;border-radius:50%;background:#444;border:4px solid #666;cursor:pointer;transition:background .15s,transform .1s,box-shadow .15s;user-select:none;-webkit-tap-highlight-color:transparent;}
+#mj-circulo.rojo{background:radial-gradient(circle at 38% 38%,#ff6b6b,var(--rojo));border-color:#ff4444;box-shadow:0 0 30px rgba(230,57,70,.7);}
+#mj-circulo.success{background:radial-gradient(circle at 38% 38%,#6bff8a,var(--acento2));border-color:#39ff14;box-shadow:0 0 30px rgba(57,255,20,.7);transform:scale(1.1);}
+#mj-circulo.fail{background:#555;border-color:#888;opacity:.6;}
+#mj-fisico-msg{font-size:.95rem;font-weight:600;text-align:center;min-height:1.5em;}
+#mj-fisico-instruc{font-size:.78rem;color:var(--texto2);text-align:center;line-height:1.5;}
+/* Técnico – Secuencia */
+#mj-tecnico-arena{display:flex;flex-direction:column;align-items:center;gap:14px;}
+.mj-flechas-show{display:flex;gap:8px;min-height:52px;align-items:center;justify-content:center;background:var(--bg3);border-radius:10px;padding:8px 16px;border:1px solid var(--borde);min-width:240px;}
+.mj-flecha-shown{font-size:2.2rem;animation:mj-pop .25s ease;}
+@keyframes mj-pop{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+.mj-botones-dir{display:grid;grid-template-columns:repeat(3,64px);grid-template-rows:64px 64px;gap:8px;justify-content:center;align-content:center;}
+.mj-btn-dir{width:64px;height:64px;border-radius:12px;background:var(--bg3);border:2px solid var(--borde);color:var(--texto);font-size:1.8rem;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:var(--transition);user-select:none;-webkit-tap-highlight-color:transparent;}
+.mj-btn-dir:hover,.mj-btn-dir:active{background:var(--verde);border-color:var(--verde-claro);color:#fff;transform:scale(1.08);}
+.mj-btn-dir.empty{background:transparent;border-color:transparent;cursor:default;pointer-events:none;}
+#mj-tec-ronda{font-size:.75rem;color:var(--acento);font-weight:700;text-transform:uppercase;letter-spacing:1px;}
+#mj-tec-feedback{min-height:20px;font-size:.82rem;font-weight:600;text-align:center;}
+#mj-tec-progreso{display:flex;gap:6px;align-items:center;justify-content:center;}
+.mj-tec-dot{width:10px;height:10px;border-radius:50%;background:var(--borde);transition:background .3s;}
+.mj-tec-dot.done{background:var(--acento2);}
+.mj-tec-dot.active{background:var(--acento);}
+/* Táctico – Puzle */
+#mj-tactico-arena{display:flex;flex-direction:column;align-items:center;gap:12px;}
+#mj-timer-bar-wrap{width:100%;background:var(--bg3);border-radius:4px;height:8px;overflow:hidden;}
+#mj-timer-bar{height:100%;background:linear-gradient(90deg,var(--acento2),var(--acento));border-radius:4px;transition:width .2s linear;}
+#mj-timer-bar.urgente{background:linear-gradient(90deg,var(--naranja),var(--rojo));}
+#mj-cancha{position:relative;width:280px;height:180px;background:linear-gradient(180deg,#1a5e2b,#2d6a4f);border-radius:10px;border:2px solid rgba(255,255,255,.2);overflow:visible;flex-shrink:0;}
+#mj-cancha::before{content:'';position:absolute;inset:6px;border:2px solid rgba(255,255,255,.2);border-radius:6px;pointer-events:none;}
+#mj-cancha::after{content:'';position:absolute;top:50%;left:0;right:0;height:2px;background:rgba(255,255,255,.15);transform:translateY(-50%);pointer-events:none;}
+.mj-drop-zone{position:absolute;width:42px;height:42px;border-radius:50%;border:2px dashed rgba(255,255,255,.5);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:rgba(255,255,255,.7);text-align:center;transition:all .2s;background:rgba(255,255,255,.05);}
+.mj-drop-zone.over{border-color:var(--oro);background:rgba(255,214,10,.2);transform:scale(1.1);}
+.mj-drop-zone.filled-ok{background:rgba(57,255,20,.25);border-color:var(--acento2);border-style:solid;}
+.mj-drop-zone.filled-ok span{color:var(--acento2);}
+.mj-drop-zone.filled-err{background:rgba(230,57,70,.25);border-color:var(--rojo);border-style:solid;}
+.mj-drop-zone.filled-err span{color:var(--rojo);}
+#mj-fichas{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:4px;}
+.mj-ficha{padding:6px 12px;border-radius:8px;background:var(--card);border:2px solid var(--borde);font-size:.72rem;font-weight:700;cursor:grab;user-select:none;transition:var(--transition);-webkit-tap-highlight-color:transparent;text-transform:uppercase;letter-spacing:.5px;}
+.mj-ficha:active{cursor:grabbing;transform:scale(1.1);}
+.mj-ficha.dragging{opacity:.4;}
+.mj-ficha.placed{opacity:.25;pointer-events:none;cursor:default;}
+.mj-ficha.pos-POR{background:rgba(255,214,10,.15);border-color:rgba(255,214,10,.4);color:#ffd60a;}
+.mj-ficha.pos-CIE{background:rgba(38,103,255,.15);border-color:rgba(38,103,255,.4);color:#6fa3ef;}
+.mj-ficha.pos-ALA{background:rgba(64,145,108,.15);border-color:rgba(64,145,108,.4);color:#40916c;}
+.mj-ficha.pos-PIV{background:rgba(230,57,70,.15);border-color:rgba(230,57,70,.4);color:#e63946;}
+#mj-tac-msg{font-size:.82rem;text-align:center;min-height:1.2em;font-weight:600;}
+/* Bonus resultado */
+#mj-result-banner{padding:18px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px;}
+#mj-result-banner .mj-res-icon{font-size:3rem;}
+#mj-result-banner .mj-res-title{font-family:'Barlow Condensed',sans-serif;font-size:1.6rem;font-weight:900;text-transform:uppercase;}
+#mj-result-banner .mj-res-desc{font-size:.85rem;color:var(--texto2);line-height:1.5;}
 </style>
 </head>
 <body>
@@ -492,6 +553,7 @@ nav{flex:1;overflow-y:auto;padding:8px 0;}
 
 <!-- MODO SELECTOR: elegir equipo existente vs crear equipo -->
 <div id="modo-selector">
+  <div style="width:100%;max-width:420px;display:flex;flex-direction:column;align-items:center;gap:16px;">
   <div class="logo" style="margin-bottom:4px">⚽ Nueva Partida</div>
   <div class="subtitle" style="margin-bottom:20px">¿Cómo quieres empezar?</div>
   <div class="modo-card" onclick="modoElegirEquipo()">
@@ -505,6 +567,7 @@ nav{flex:1;overflow-y:auto;padding:8px 0;}
     <div class="mc-desc">Pon nombre, elige escudo y personaliza tu plantilla. Jugará en 2ª División</div>
   </div>
   <button class="btn btn-secondary btn-sm" style="margin-top:6px" onclick="volverAlSplash()">← Volver</button>
+  </div>
 </div>
 
 <!-- CREADOR DE EQUIPO -->
@@ -624,7 +687,7 @@ const _music = (function(){
 
   async function loadPlaylist(){
     try {
-      const r = await fetch('Music/index.json');
+      const r = await fetch('music/index.json');
       if(r.ok){
         const data = await r.json();
         playlist = Array.isArray(data) ? data : (data.tracks || []);
@@ -643,7 +706,7 @@ const _music = (function(){
     if(!enabled || !playlist.length) return;
     if(!audio) audio = new Audio();
     audio.volume = volume;
-    audio.src = 'Music/' + playlist[currentIdx];
+    audio.src = 'music/' + playlist[currentIdx];
     audio.play().catch(()=>{});
     audio.onended = () => { currentIdx = (currentIdx + 1) % playlist.length; _play(); };
     audio.onerror = () => { currentIdx = (currentIdx + 1) % playlist.length; setTimeout(_play, 500); };
@@ -686,7 +749,7 @@ const _music = (function(){
     if(vol) vol.value = Math.round(volume * 100);
     if(track){
       const t = getCurrentTrack();
-      track.textContent = t ? '♪ ' + t.replace(/\.[^.]+$/, '') : (playlist.length===0 ? 'Sin pistas en Music/' : 'Parado');
+      track.textContent = t ? '♪ ' + t.replace(/\.[^.]+$/, '') : (playlist.length===0 ? 'Sin pistas en music/' : 'Parado');
     }
   }
 
@@ -1119,7 +1182,10 @@ function generarLiga(equs, div){
 function generarCopa(equipos){
   const participantes=[...equipos].sort(()=>Math.random()-.5).map(e=>e.id);
   const ronda1=emparejarEliminatoria(participantes);
-  return {nombre:'Copa de Campoo', rondas:[{nombre:'1ª Ronda',partidos:ronda1}], rondaActual:0, ganador:null, terminada:false};
+  // rondaSF: el número de equipos ≤4 indica que empieza SF
+  return {nombre:'Copa de Campoo', rondas:[{nombre:'1ª Ronda',partidos:ronda1}], rondaActual:0, ganador:null, terminada:false,
+    fase:'espera' // 'espera' | 'rondas_previas' | 'semis_final'
+  };
 }
 
 function emparejarEliminatoria(ids){
@@ -1199,6 +1265,7 @@ function inicializarJuego(equipoId){
     canteranosPendientes:null,
     entrenamiento:'fisico',
     entrenamientoUsado:false,
+    entrenamientoBonus:false,
     tactica:TACTICAS[0],
     darkMode:true,
     currentPage:'inicio',
@@ -1856,6 +1923,7 @@ function avanzarSemana(){
   sonido('semana');
   G.semana++;
   G.entrenamientoUsado=false; // Reset semanal del entrenamiento
+  G.entrenamientoBonus=false; // Reset bonus de minijuego
   G._partidoRecienJugado=false; // Reset — ya se puede simular el siguiente
   G._forzarPartidoVisual=null; // Limpiar partido forzado al avanzar semana
   // Calendario: T1=Ago(8). Liga empieza Sep(9), termina May(5). Jun(6)=fin temporada.
@@ -1952,12 +2020,58 @@ function avanzarSemana(){
     });
   }
 
-  // Copa cada 4 semanas — empieza en octubre (mes 10) como mínimo,
-  // cuando la liga ya lleva al menos 1 jornada jugada
-  const copaLigaJugada = G.ligas.some(l => l.div === miEquipo()?.div && l.jornada >= 1);
-  const copaMesValido  = G.mes >= 10 || G.mes <= 4; // oct → abr
-  if(G.semana % 4 === 1 && !G.copa.terminada && copaMesValido && copaLigaJugada){
-    jugarRondaCopa();
+  // ── Copa: sistema por fases ──────────────────────────────────────────
+  // FASE 1 "espera": aguarda a que la liga del usuario supere la mitad de jornadas (vuelta 1 completa)
+  // FASE 2 "rondas_previas": juega UNA ronda de copa por semana hasta que solo queden ≤4 equipos
+  // FASE 3 "semis_final": espera a que TODAS las ligas acaben, luego juega SF + Final semana a semana
+  if(!G.copa.terminada){
+    if(!G.copa.fase) G.copa.fase='espera';
+    const eqJ2=miEquipo();
+    const ligaJ=G.ligas.find(l=>l.div===eqJ2?.div);
+
+    if(G.copa.fase==='espera'){
+      // Trigger: la primera vuelta completa = mitad exacta de jornadas
+      const mitad=ligaJ ? Math.floor(ligaJ.partidos.length/2) : 15;
+      if(ligaJ && ligaJ.jornada >= mitad){
+        G.copa.fase='rondas_previas';
+        mostrarToast('🏆 ¡Arranca la Copa de Campoo! Primera ronda en camino…','gold');
+      }
+    }
+
+    if(G.copa.fase==='rondas_previas'){
+      // Jugar una ronda por semana hasta que queden ≤4 equipos (= entran SF)
+      const rondaActual=G.copa.rondas[G.copa.rondaActual];
+      const equiposRestantes=rondaActual?.partidos.length; // partidos = equipos/2 aprox
+      // Si ya en esta ronda hay ≤2 partidos (≤4 equipos), pasar a fase semis
+      if(rondaActual && rondaActual.partidos.length<=2){
+        G.copa.fase='semis_final';
+        mostrarToast('⏸️ Copa pausada — Semifinales y Final se jugarán al terminar la liga','');
+      } else {
+        jugarRondaCopa();
+        const rnombre=G.copa.rondas[G.copa.rondaActual-1]?.nombre||'Ronda';
+        mostrarToast(`🏆 Copa: ${rnombre} completada`,'');
+        // Volver a comprobar: si tras esta ronda ya quedan ≤4
+        const sigRonda=G.copa.rondas[G.copa.rondaActual];
+        if(sigRonda && sigRonda.partidos.length<=2){
+          G.copa.fase='semis_final';
+          mostrarToast('⏸️ Copa pausada — Semifinales y Final se jugarán al terminar la liga','');
+        }
+      }
+    }
+
+    if(G.copa.fase==='semis_final'){
+      // Solo jugar cuando TODAS las ligas están terminadas
+      const todasLigasTerminadas2=G.ligas.every(l=>l.terminada);
+      if(todasLigasTerminadas2){
+        jugarRondaCopa();
+        if(G.copa.terminada){
+          mostrarToast('🏆 ¡La Copa de Campoo ha concluido!','gold');
+        } else {
+          const rnombre=G.copa.rondas[G.copa.rondaActual-1]?.nombre||'Ronda';
+          mostrarToast(`🏆 Copa: ${rnombre} jugada`,'');
+        }
+      }
+    }
   }
 
   // Fichajes IA entre equipos (mercado abierto)
@@ -2042,6 +2156,12 @@ function avanzarSemana(){
         if(foco==='fisico'){j.stats.fisico=clamp(j.stats.fisico+rand(0,1),1,99);j.stats.velocidad=clamp(j.stats.velocidad+rand(0,1),1,99);}
         if(foco==='tactico'){j.stats.pase=clamp(j.stats.pase+rand(0,1),1,99);j.stats.defensa=clamp(j.stats.defensa+rand(0,1),1,99);}
         if(foco==='tecnico'){j.stats.regate=clamp(j.stats.regate+rand(0,1),1,99);j.stats.tiro=clamp(j.stats.tiro+rand(0,1),1,99);}
+        // Bonus por minijuego superado
+        if(G.entrenamientoBonus){
+          if(foco==='fisico'){j.stats.fisico=clamp(j.stats.fisico+1,1,99);j.stats.velocidad=clamp(j.stats.velocidad+1,1,99);}
+          if(foco==='tactico'){j.stats.pase=clamp(j.stats.pase+1,1,99);j.stats.defensa=clamp(j.stats.defensa+1,1,99);}
+          if(foco==='tecnico'){j.stats.regate=clamp(j.stats.regate+1,1,99);j.stats.tiro=clamp(j.stats.tiro+1,1,99);}
+        }
       }
     });
 
@@ -2314,7 +2434,7 @@ function procesarOfertasEntrantes(){
           cantidad:costeSem,
           semana:G.semana
         });
-        mostrarToast(`🔄 ${interesado.nombre} quiere ceder a ${j.nombre}: ${costeSem}€/sem`,'');
+        mostrarToast(`🔄 ${interesado.nombre} quiere fichar en cesión a ${j.nombre}: ${costeSem}€/sem`,'');
       }
     }
   });
@@ -2563,6 +2683,7 @@ function _aplicarMigraciones(obj){
   if(obj.entrenamientoUsado===undefined) obj.entrenamientoUsado=false;
   // Al cargar una partida siempre se puede entrenar esa semana — el bloqueo es solo en sesión activa.
   obj.entrenamientoUsado=false;
+  if(obj.entrenamientoBonus===undefined) obj.entrenamientoBonus=false;
   if(obj.playoff===undefined) obj.playoff=null;
   if(obj.playoffTerminado===undefined) obj.playoffTerminado=false;
   if(obj.calMes===undefined) obj.calMes=obj.mes||8;
@@ -3069,25 +3190,450 @@ function renderInicio(){
   </div></div>`;
 }
 
-function setEntrenamiento(foco){
+async function setEntrenamiento(foco){
   if(G.entrenamientoUsado){
     mostrarToast('⚠️ Ya has realizado el entrenamiento de esta semana. Avanza semana para volver a entrenar.','warning');
     return;
   }
   G.entrenamiento=foco;
+
+  // Descanso: no hay minijuego
+  if(foco==='descanso'){
+    G.entrenamientoUsado=true;
+    G.entrenamientoBonus=false;
+    guardarPartida();
+    mostrarModal('😴 Descanso',`
+<div style="text-align:center;padding:10px">
+  <div class="u-empty-icon-lg">😴</div>
+  <div class="fw-bold" style="font-size:1.1rem">Semana de descanso</div>
+  <div class="text-muted text-sm mt-2">Los jugadores descansan. Sin mejora de stats pero la fatiga se recupera (+20).</div>
+  <div class="text-sm mt-3" style="color:var(--acento)">Fatiga: recuperación extra −20</div>
+</div>`,[{label:'✅ Confirmar',cls:'btn-primary',action:cerrarModal}]);
+    renderPage();
+    return;
+  }
+
+  // Lanzar minijuego según foco
+  let bonus=false;
+  try{
+    if(foco==='fisico')  bonus = await minijuegoFisico();
+    if(foco==='tecnico') bonus = await minijuegoTecnico();
+    if(foco==='tactico') bonus = await minijuegoTactico();
+  }catch(e){ bonus=false; }
+
+  G.entrenamientoBonus=bonus;
   G.entrenamientoUsado=true;
   guardarPartida();
+
+  const nombresStats={fisico:'💪 físico y ⚡ velocidad',tecnico:'🎯 regate y 🥅 tiro',tactico:'🎽 pase y 🛡️ defensa'};
   mostrarModal('🏋️ Sesión de entrenamiento',`
 <div style="text-align:center;padding:10px">
-  <div class="u-empty-icon-lg">${{fisico:'💪',tactico:'🧠',tecnico:'⚽',descanso:'😴'}[foco]}</div>
-  <div class="fw-bold" style="font-size:1.1rem">Entrenamiento ${foco==='fisico'?'Físico':foco==='tactico'?'Táctico':foco==='tecnico'?'Técnico':'Descanso'}</div>
-  <div class="text-muted text-sm mt-2">${foco==='descanso'?'Los jugadores descansan. Sin mejora de stats pero la fatiga se recupera (+20).':
-  'El equipo se centra en '+(foco==='fisico'?'resistencia y velocidad':foco==='tactico'?'pase y defensa':'regate y tiro')+' esta semana.'}</div>
-  ${foco!=='descanso'?`<div class="text-xs text-muted mt-2">⚠️ Jugadores con fatiga >90 no pueden entrenar.</div>`:''}
-  <div class="text-sm mt-3" style="color:var(--acento)">Fatiga añadida: ${foco==='descanso'?'0 (descanso activo)':foco==='fisico'?'+15':foco==='tecnico'?'+10':'+5'}</div>
-  <div class="text-xs text-muted mt-2">✅ Entrenamiento registrado para esta semana</div>
+  <div class="u-empty-icon-lg">${{fisico:'💪',tactico:'🧠',tecnico:'⚽'}[foco]}</div>
+  <div class="fw-bold" style="font-size:1.1rem">Entrenamiento ${foco==='fisico'?'Físico':foco==='tactico'?'Táctico':'Técnico'}</div>
+  ${bonus
+    ? `<div style="background:rgba(57,255,20,.1);border:1px solid rgba(57,255,20,.3);border-radius:8px;padding:10px;margin-top:12px">
+        <div style="color:var(--acento2);font-weight:700;font-size:1rem">🏆 ¡ENTRENAMIENTO EXCEPCIONAL!</div>
+        <div style="font-size:.82rem;color:var(--texto2);margin-top:4px">Todos los jugadores ganan +1 extra en ${nombresStats[foco]}</div>
+       </div>`
+    : `<div class="text-muted text-sm mt-2">Entrenamiento normal. El equipo se centra en ${foco==='fisico'?'resistencia y velocidad':foco==='tactico'?'pase y defensa':'regate y tiro'}.</div>`
+  }
+  <div class="text-xs text-muted mt-2">⚠️ Jugadores con fatiga >85 no pueden entrenar.</div>
+  <div class="text-sm mt-3" style="color:var(--acento)">Fatiga añadida: ${foco==='fisico'?'+8':foco==='tecnico'?'+6':'+4'}</div>
 </div>`,[{label:'✅ Confirmar',cls:'btn-primary',action:cerrarModal}]);
   renderPage();
+}
+
+/* ============================================================
+   MINIJUEGOS
+   ============================================================ */
+
+// Función utilitaria: crea y muestra el overlay del minijuego
+function _mjCrearOverlay(html){
+  const div=document.createElement('div');
+  div.id='mj-overlay';
+  div.innerHTML=html;
+  document.body.appendChild(div);
+  return div;
+}
+function _mjDestruir(){
+  const el=document.getElementById('mj-overlay');
+  if(el) el.remove();
+}
+
+/* ─────────────────────────────────────────────
+   MINIJUEGO 1: REACCIÓN EXPLOSIVA (Físico)
+───────────────────────────────────────────── */
+function minijuegoFisico(){
+  return new Promise(resolve=>{
+    let fase='espera'; // espera | rojo | expirado | hecho
+    let timerEspera=null, timerVentana=null;
+
+    const overlay=_mjCrearOverlay(`
+      <div id="mj-modal">
+        <div id="mj-header">
+          <h2>💪 Reacción Explosiva</h2>
+          <span style="font-size:.72rem;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px">Entrenamiento Físico</span>
+        </div>
+        <div id="mj-body">
+          <div id="mj-fisico-arena">
+            <div id="mj-fisico-instruc">
+              Cuando el círculo se ponga <strong style="color:var(--rojo)">ROJO</strong>,<br>
+              ¡haz clic en él en menos de <strong>400ms</strong>!
+            </div>
+            <div id="mj-circulo-wrap">
+              <div id="mj-circulo"></div>
+            </div>
+            <div id="mj-fisico-msg" style="color:var(--texto2)">Preparando...</div>
+          </div>
+        </div>
+        <div id="mj-footer">
+          <span style="font-size:.72rem;color:var(--texto2)">Bonus: +1 físico y velocidad para todos</span>
+        </div>
+      </div>`);
+
+    const circulo=overlay.querySelector('#mj-circulo');
+    const msg=overlay.querySelector('#mj-fisico-msg');
+
+    function arrancar(){
+      fase='espera';
+      circulo.className='';
+      msg.style.color='var(--texto2)';
+      msg.textContent='Preparado… espera el rojo…';
+      const espera=1000+Math.random()*2000;
+      timerEspera=setTimeout(()=>{
+        if(fase!=='espera') return;
+        fase='rojo';
+        circulo.classList.add('rojo');
+        msg.style.color='var(--rojo)';
+        msg.textContent='¡¡AHORA!!';
+        timerVentana=setTimeout(()=>{
+          if(fase!=='rojo') return;
+          fase='expirado';
+          circulo.classList.remove('rojo');
+          circulo.classList.add('fail');
+          msg.style.color='var(--rojo)';
+          msg.textContent='⏱ Demasiado tarde…';
+          setTimeout(()=>{ _mjDestruir(); resolve(false); },1400);
+        },400);
+      },espera);
+    }
+
+    function onClick(){
+      if(fase==='espera'){
+        clearTimeout(timerEspera);
+        clearTimeout(timerVentana);
+        fase='expirado';
+        msg.style.color='var(--naranja)';
+        msg.textContent='¡Demasiado pronto! Espera el rojo.';
+        setTimeout(()=>{ _mjDestruir(); resolve(false); },1400);
+        return;
+      }
+      if(fase==='rojo'){
+        clearTimeout(timerVentana);
+        fase='hecho';
+        circulo.classList.remove('rojo');
+        circulo.classList.add('success');
+        msg.style.color='var(--acento2)';
+        msg.textContent='⚡ ¡Perfecto! Reacción explosiva.';
+        setTimeout(()=>{ _mjDestruir(); resolve(true); },1200);
+      }
+    }
+
+    circulo.addEventListener('click',onClick);
+    circulo.addEventListener('touchend',e=>{ e.preventDefault(); onClick(); },{passive:false});
+    setTimeout(arrancar,600);
+  });
+}
+
+/* ─────────────────────────────────────────────
+   MINIJUEGO 2: SECUENCIA DE REGATES (Técnico)
+───────────────────────────────────────────── */
+function minijuegoTecnico(){
+  return new Promise(resolve=>{
+    // 3 rondas de dificultad creciente: 3, 4, 5 flechas
+    const FLECHAS_RONDA=[3,4,5];
+    const SIMBOLOS=['←','→','↑','↓'];
+    let ronda=0, secuencia=[], paso=0, mostrando=false;
+
+    function genSecuencia(n){ return Array.from({length:n},()=>SIMBOLOS[Math.floor(Math.random()*4)]); }
+
+    const overlay=_mjCrearOverlay(`
+      <div id="mj-modal">
+        <div id="mj-header">
+          <h2>⚽ Secuencia de Regates</h2>
+          <span style="font-size:.72rem;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px">Entrenamiento Técnico</span>
+        </div>
+        <div id="mj-body">
+          <div id="mj-tecnico-arena">
+            <div id="mj-tec-ronda">Ronda 1 / 3</div>
+            <div id="mj-tec-progreso">
+              <div class="mj-tec-dot active"></div>
+              <div class="mj-tec-dot"></div>
+              <div class="mj-tec-dot"></div>
+            </div>
+            <div style="font-size:.78rem;color:var(--texto2);text-align:center">Memoriza la secuencia y repítela:</div>
+            <div class="mj-flechas-show" id="mj-tec-show"><span style="color:var(--texto2);font-size:.85rem">Preparando…</span></div>
+            <div class="mj-botones-dir">
+              <div class="mj-btn-dir empty"></div>
+              <div class="mj-btn-dir" data-dir="↑" onclick="mjTecPresionar('↑')">↑</div>
+              <div class="mj-btn-dir empty"></div>
+              <div class="mj-btn-dir" data-dir="←" onclick="mjTecPresionar('←')">←</div>
+              <div class="mj-btn-dir" data-dir="↓" onclick="mjTecPresionar('↓')">↓</div>
+              <div class="mj-btn-dir" data-dir="→" onclick="mjTecPresionar('→')">→</div>
+            </div>
+            <div id="mj-tec-feedback"></div>
+          </div>
+        </div>
+        <div id="mj-footer">
+          <span style="font-size:.72rem;color:var(--texto2)">Bonus: +1 regate y tiro para todos</span>
+        </div>
+      </div>`);
+
+    const showEl=overlay.querySelector('#mj-tec-show');
+    const feedback=overlay.querySelector('#mj-tec-feedback');
+    const rondaEl=overlay.querySelector('#mj-tec-ronda');
+    const dots=overlay.querySelectorAll('.mj-tec-dot');
+
+    // Deshabilitar botones táctiles con touchend
+    overlay.querySelectorAll('.mj-btn-dir:not(.empty)').forEach(btn=>{
+      btn.addEventListener('touchend',e=>{ e.preventDefault(); mjTecPresionar(btn.dataset.dir); },{passive:false});
+    });
+
+    function actualizarDots(){
+      dots.forEach((d,i)=>{
+        d.classList.toggle('done', i<ronda);
+        d.classList.toggle('active', i===ronda);
+      });
+    }
+
+    function mostrarSecuencia(){
+      mostrando=true;
+      // Deshabilitar botones
+      overlay.querySelectorAll('.mj-btn-dir:not(.empty)').forEach(b=>b.style.opacity='.3');
+      secuencia=genSecuencia(FLECHAS_RONDA[ronda]);
+      paso=0;
+      showEl.innerHTML='';
+      let i=0;
+      feedback.textContent='';
+      function mostrarSiguiente(){
+        if(i>=secuencia.length){
+          setTimeout(()=>{
+            showEl.innerHTML='<span style="color:var(--acento);font-size:.85rem;font-weight:700">¡Repite la secuencia!</span>';
+            overlay.querySelectorAll('.mj-btn-dir:not(.empty)').forEach(b=>b.style.opacity='');
+            mostrando=false;
+          },400);
+          return;
+        }
+        showEl.innerHTML='';
+        const sp=document.createElement('span');
+        sp.className='mj-flecha-shown';
+        sp.textContent=secuencia[i];
+        showEl.appendChild(sp);
+        i++;
+        setTimeout(mostrarSiguiente,550);
+      }
+      setTimeout(mostrarSiguiente,400);
+    }
+
+    window.mjTecPresionar=function(dir){
+      if(mostrando) return;
+      if(dir!==secuencia[paso]){
+        feedback.style.color='var(--rojo)';
+        feedback.textContent='❌ ¡Error! Secuencia incorrecta.';
+        overlay.querySelectorAll('.mj-btn-dir:not(.empty)').forEach(b=>b.style.opacity='.3');
+        delete window.mjTecPresionar;
+        setTimeout(()=>{ _mjDestruir(); resolve(false); },1200);
+        return;
+      }
+      paso++;
+      // Flash de la flecha correcta
+      feedback.style.color='var(--acento2)';
+      feedback.textContent='✅ '.repeat(paso);
+      if(paso===secuencia.length){
+        ronda++;
+        if(ronda===3){
+          feedback.style.color='var(--acento2)';
+          feedback.textContent='🏆 ¡Secuencia completada!';
+          delete window.mjTecPresionar;
+          setTimeout(()=>{ _mjDestruir(); resolve(true); },1100);
+        } else {
+          actualizarDots();
+          rondaEl.textContent=`Ronda ${ronda+1} / 3`;
+          feedback.style.color='var(--acento)';
+          feedback.textContent=`✅ Ronda ${ronda} superada`;
+          overlay.querySelectorAll('.mj-btn-dir:not(.empty)').forEach(b=>b.style.opacity='.3');
+          setTimeout(mostrarSecuencia,700);
+        }
+      }
+    };
+
+    actualizarDots();
+    setTimeout(mostrarSecuencia,500);
+  });
+}
+
+/* ─────────────────────────────────────────────
+   MINIJUEGO 3: PUZLE DE POSICIONAMIENTO (Táctico)
+───────────────────────────────────────────── */
+function minijuegoTactico(){
+  return new Promise(resolve=>{
+    // Posiciones correctas y sus coordenadas en la cancha (center x%, center y%)
+    const ZONAS=[
+      {id:'z-por', label:'POR', correcto:'POR', x:50, y:82},
+      {id:'z-cie1',label:'CIE', correcto:'CIE', x:25, y:58},
+      {id:'z-cie2',label:'CIE', correcto:'CIE', x:75, y:58},
+      {id:'z-ala1',label:'ALA', correcto:'ALA', x:15, y:28},
+      {id:'z-ala2',label:'ALA', correcto:'ALA', x:85, y:28},
+    ];
+    // Fichas a arrastrar (barajadas)
+    const FICHAS_BASE=['POR','CIE','CIE','ALA','ALA'];
+    const fichasBajadas=[...FICHAS_BASE].sort(()=>Math.random()-.5);
+
+    let colocadas={}; // zoneId -> posLabel
+    let tiempoRestante=10;
+    let intervalo=null;
+    let terminado=false;
+    let dragFicha=null; // la ficha en arrastre {el, label}
+
+    const overlay=_mjCrearOverlay(`
+      <div id="mj-modal">
+        <div id="mj-header">
+          <h2>🧠 Puzle de Posicionamiento</h2>
+          <span style="font-size:.72rem;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px">Entrenamiento Táctico</span>
+        </div>
+        <div id="mj-body">
+          <div id="mj-tactico-arena">
+            <div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px">
+              <span style="font-size:.78rem;color:var(--texto2)">Coloca cada posición en su zona</span>
+              <span id="mj-tac-timer" style="font-family:'Barlow Condensed',sans-serif;font-size:1.4rem;font-weight:900;color:var(--acento)">10s</span>
+            </div>
+            <div id="mj-timer-bar-wrap"><div id="mj-timer-bar" style="width:100%"></div></div>
+            <div id="mj-cancha">${ZONAS.map(z=>`
+              <div class="mj-drop-zone" id="${z.id}" data-correcto="${z.correcto}"
+                style="left:${z.x-7.5}%;top:${z.y-11.7}%">
+                <span style="font-size:.6rem;color:rgba(255,255,255,.5)">${z.label}</span>
+              </div>`).join('')}
+            </div>
+            <div id="mj-fichas">${fichasBajadas.map((f,i)=>`
+              <div class="mj-ficha pos-${f}" id="mj-ficha-${i}" data-label="${f}" draggable="true">${f}</div>`).join('')}
+            </div>
+            <div id="mj-tac-msg"></div>
+          </div>
+        </div>
+        <div id="mj-footer">
+          <span style="font-size:.72rem;color:var(--texto2)">Bonus: +1 pase y defensa para todos</span>
+        </div>
+      </div>`);
+
+    const timerEl=overlay.querySelector('#mj-tac-timer');
+    const barEl=overlay.querySelector('#mj-timer-bar');
+    const msgEl=overlay.querySelector('#mj-tac-msg');
+
+    function verificarGanado(){
+      return ZONAS.every(z=> colocadas[z.id]===z.correcto);
+    }
+
+    function terminar(ganado){
+      if(terminado) return;
+      terminado=true;
+      clearInterval(intervalo);
+      delete window._mjTacDrag;
+      // Colorear zonas
+      ZONAS.forEach(z=>{
+        const el=overlay.querySelector(`#${z.id}`);
+        if(!el) return;
+        if(colocadas[z.id]===z.correcto) el.classList.add('filled-ok');
+        else el.classList.add('filled-err');
+      });
+      if(ganado){
+        msgEl.style.color='var(--acento2)';
+        msgEl.textContent='🏆 ¡Formación perfecta!';
+      } else {
+        msgEl.style.color='var(--rojo)';
+        msgEl.textContent='❌ Posicionamiento incorrecto.';
+      }
+      setTimeout(()=>{ _mjDestruir(); resolve(ganado); },1400);
+    }
+
+    // Timer
+    intervalo=setInterval(()=>{
+      if(terminado) return;
+      tiempoRestante--;
+      timerEl.textContent=tiempoRestante+'s';
+      barEl.style.width=(tiempoRestante/10*100)+'%';
+      if(tiempoRestante<=4) barEl.classList.add('urgente');
+      if(tiempoRestante<=0){
+        timerEl.style.color='var(--rojo)';
+        terminar(false);
+      }
+    },1000);
+
+    // ── Drag & Drop (ratón) ──
+    overlay.querySelectorAll('.mj-ficha').forEach(ficha=>{
+      ficha.addEventListener('dragstart',e=>{
+        dragFicha={el:ficha, label:ficha.dataset.label};
+        ficha.classList.add('dragging');
+        e.dataTransfer.setData('text/plain',ficha.dataset.label);
+      });
+      ficha.addEventListener('dragend',()=>ficha.classList.remove('dragging'));
+    });
+    overlay.querySelectorAll('.mj-drop-zone').forEach(zona=>{
+      zona.addEventListener('dragover',e=>{ e.preventDefault(); zona.classList.add('over'); });
+      zona.addEventListener('dragleave',()=>zona.classList.remove('over'));
+      zona.addEventListener('drop',e=>{
+        e.preventDefault();
+        zona.classList.remove('over');
+        if(terminado) return;
+        const label=e.dataTransfer.getData('text/plain');
+        const fichaEl=overlay.querySelector('.mj-ficha.dragging');
+        if(!fichaEl) return;
+        // Si zona ya ocupada, ignorar
+        if(colocadas[zona.id]) return;
+        colocadas[zona.id]=label;
+        fichaEl.classList.add('placed');
+        zona.innerHTML=`<span style="font-weight:700;font-size:.7rem">${label}</span>`;
+        // Verificar si todas colocadas
+        if(Object.keys(colocadas).length===ZONAS.length) terminar(verificarGanado());
+      });
+    });
+
+    // ── Touch drag ──
+    let touchFicha=null, touchClone=null;
+    overlay.querySelectorAll('.mj-ficha').forEach(ficha=>{
+      ficha.addEventListener('touchstart',e=>{
+        if(terminado) return;
+        const t=e.touches[0];
+        touchFicha={el:ficha, label:ficha.dataset.label};
+        // Clone visual
+        touchClone=ficha.cloneNode(true);
+        touchClone.style.cssText=`position:fixed;z-index:99999;pointer-events:none;opacity:.85;transform:scale(1.1);left:${t.clientX-25}px;top:${t.clientY-18}px;margin:0`;
+        document.body.appendChild(touchClone);
+        ficha.classList.add('dragging');
+      },{passive:true});
+      ficha.addEventListener('touchmove',e=>{
+        if(!touchClone) return;
+        const t=e.touches[0];
+        touchClone.style.left=(t.clientX-25)+'px';
+        touchClone.style.top=(t.clientY-18)+'px';
+      },{passive:true});
+      ficha.addEventListener('touchend',e=>{
+        if(!touchFicha) return;
+        if(touchClone){ touchClone.remove(); touchClone=null; }
+        touchFicha.el.classList.remove('dragging');
+        const t=e.changedTouches[0];
+        // Encontrar zona bajo el dedo
+        const el=document.elementFromPoint(t.clientX,t.clientY);
+        const zona=el?.closest('.mj-drop-zone');
+        if(zona && !colocadas[zona.id] && !terminado){
+          colocadas[zona.id]=touchFicha.label;
+          touchFicha.el.classList.add('placed');
+          zona.innerHTML=`<span style="font-weight:700;font-size:.7rem">${touchFicha.label}</span>`;
+          if(Object.keys(colocadas).length===ZONAS.length) terminar(verificarGanado());
+        }
+        touchFicha=null;
+      },{passive:true});
+    });
+  });
 }
 
 function getProximoPartido(eqId){
@@ -7366,7 +7912,7 @@ function renderOpciones(){
         </div>
         <div style="background:var(--bg3);border-radius:8px;padding:12px;border:1px solid var(--borde)">
           <div class="flex mb-2" style="align-items:center;justify-content:space-between">
-            <div><span class="text-sm fw-600">🎵 Música de fondo</span><div class="text-xs text-muted">Archivos MP3 en la carpeta <code>Music/</code></div></div>
+            <div><span class="text-sm fw-600">🎵 Música de fondo</span><div class="text-xs text-muted">Archivos MP3 en la carpeta <code>music/</code></div></div>
             <button id="music-toggle-btn" class="btn btn-sm ${_music.isEnabled()?'btn-primary':'btn-secondary'}" onclick="musicToggle()">${_music.isEnabled()?'🎵 Activada':'🔇 Desactivada'}</button>
           </div>
           <div class="flex gap-2 mb-2" style="align-items:center">
@@ -7377,10 +7923,10 @@ function renderOpciones(){
             <span class="text-xs text-muted" style="min-width:28px;text-align:right" id="music-vol-pct">${Math.round(_music.getVolume()*100)}%</span>
           </div>
           <div class="flex gap-2" style="align-items:center">
-            <span id="music-track-name" class="text-xs text-muted" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(()=>{const t=_music.getCurrentTrack();return t?'♪ '+t.replace(/\.[^.]+$/,''):(_music.getPlaylist().length===0?'Sin pistas en Music/':'Parado');})()}</span>
+            <span id="music-track-name" class="text-xs text-muted" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(()=>{const t=_music.getCurrentTrack();return t?'♪ '+t.replace(/\.[^.]+$/,''):(_music.getPlaylist().length===0?'Sin pistas en music/':'Parado');})()}</span>
             <button class="btn btn-sm btn-secondary" onclick="_music.next();_music.updateMusicUI()" title="Siguiente pista">⏭</button>
           </div>
-          <div class="text-xs text-muted mt-2" style="opacity:.65">Crea <code>Music/index.json</code> con la lista de archivos: <code>["cancion1.mp3","cancion2.mp3"]</code></div>
+          <div class="text-xs text-muted mt-2" style="opacity:.65">Crea <code>music/index.json</code> con la lista de archivos: <code>["cancion1.mp3","cancion2.mp3"]</code></div>
         </div>
         <div class="divider"></div>
         <div class="text-sm fw-bold mb-1">Estado actual</div>
@@ -7723,7 +8269,7 @@ function mostrarModalSplashOpciones(isDark){
             <div class="fw-600 text-sm">Versión</div>
             <div class="text-xs text-muted">Fútbol Sala Campoo</div>
           </div>
-          <span class="stat-pill gris">v7.0</span>
+          <span class="stat-pill gris">v1.0</span>
         </div>
         <div class="divider"></div>
         <div class="text-xs text-muted text-center">Más opciones disponibles dentro de la partida.</div>
