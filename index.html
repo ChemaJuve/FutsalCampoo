@@ -757,7 +757,60 @@ const _music = (function(){
 })();
 
 // ===== CONSTANTES =====
-const TACTICAS = ['4-0','3-1','2-2','1-2-1','Portero jugador'];
+const TACTICAS = ['2-1-1','3-0-1','2-0-2','1-2-1','1-1-2','1-0-3','Portero jugador'];
+
+// Características tácticas: slots de campo + bonificadores al motor de partido
+const TACTICAS_INFO = {
+  '2-1-1': {
+    slots:   ['POR','CIE','CIE','ALA','PIV'],
+    label:   '2 Cierres · 1 Ala · 1 Pívot',
+    desc:    'Equilibrio total. Defensa sólida con presencia en ataque. La formación más versátil.',
+    bonus:   { ataque:0, defensa:0, presion:0, contraataque:5 },
+    color:   'var(--acento2)'
+  },
+  '3-0-1': {
+    slots:   ['POR','CIE','CIE','CIE','PIV'],
+    label:   '3 Cierres · 1 Pívot',
+    desc:    'Bloque defensivo con pivote referencia. Muy difícil de romper, pero poco veloz en ataque.',
+    bonus:   { ataque:-8, defensa:15, presion:-5, contraataque:8 },
+    color:   'var(--azul-claro)'
+  },
+  '2-0-2': {
+    slots:   ['POR','CIE','CIE','PIV','PIV'],
+    label:   '2 Cierres · 2 Pívots',
+    desc:    'Dos pivotes en área rival. Muy ofensiva en zona, pero vulnerable al contraataque.',
+    bonus:   { ataque:10, defensa:-8, presion:5, contraataque:-5 },
+    color:   'var(--naranja)'
+  },
+  '1-2-1': {
+    slots:   ['POR','CIE','ALA','ALA','PIV'],
+    label:   '1 Cierre · 2 Alas · 1 Pívot',
+    desc:    'Juego de banda y movilidad. Las alas generan superioridades y el pivote finaliza.',
+    bonus:   { ataque:8, defensa:-5, presion:8, contraataque:5 },
+    color:   'var(--verde-claro)'
+  },
+  '1-1-2': {
+    slots:   ['POR','CIE','ALA','PIV','PIV'],
+    label:   '1 Cierre · 1 Ala · 2 Pívots',
+    desc:    'Ataque con doble referencia en área. Alta presión ofensiva; la defensa queda expuesta.',
+    bonus:   { ataque:12, defensa:-12, presion:10, contraataque:-8 },
+    color:   'var(--rojo)'
+  },
+  '1-0-3': {
+    slots:   ['POR','CIE','PIV','PIV','PIV'],
+    label:   '1 Cierre · 3 Pívots',
+    desc:    'Ultra-ofensiva. Tres pívots asfixian el área rival. Solo usar si ganas de goleada o vas perdiendo.',
+    bonus:   { ataque:18, defensa:-20, presion:15, contraataque:-15 },
+    color:   'var(--oro)'
+  },
+  'Portero jugador': {
+    slots:   ['CIE','CIE','ALA','ALA','PIV'],
+    label:   'Sin portero · 5 jugadores de campo',
+    desc:    'El portero abandona la portería para crear superioridad numérica. Riesgo máximo, solo para desesperados.',
+    bonus:   { ataque:20, defensa:-30, presion:0, contraataque:-20 },
+    color:   'var(--rojo)'
+  }
+};
 const NOMBRES = ['Iker','Javier','Miguel','Carlos','Sergio','David','Pablo','Álvaro','Marcos','Diego','Adrián','Rubén','Iván','Raúl','Luis','Fernando','Alberto','Gonzalo','Jorge','Manuel','Pedro','Andrés','Roberto','Víctor','Eduardo','Alejandro','Óscar','Daniel','José','Antonio','Tomás','Martín','Rodrigo','Borja','Ismael','Hugo','Pelayo','Noel','Xabier','Ángel','César','Ernesto','Felipe','Germán','Héctor','Ignacio','Jon','Kevin','Lorenzo','Nicolás'];
 const APELLIDOS = ['García','Martínez','Pérez','López','González','Rodríguez','Fernández','Sánchez','Díaz','Torres','Ruiz','Jiménez','Moreno','Muñoz','Álvarez','Romero','Alonso','Gutiérrez','Navarro','Vega','Herrera','Castro','Medina','Blanco','Ortega','Delgado','Suárez','Ramos','Molina','Iglesias','Santiago','Castillo','Nieto','Cano','Calvo','Fuentes','Hidalgo','Prada','Marcos','Prieto','Sierra','Lastra','Díez','Rueda','Camino','Ibáñez','Gil','Palacio','Barrio','Peña'];
 const EMOJIS_EQUIPOS = ['⚡','🔥','💥','🌊','❄️','🦅','🐺','🦁','🐉','⚔️','🛡️','🎯','🏔️','🌿','🌀','💫','🌪️','🦊','🐯','🦂','🌙','☀️','⭐','🎭','🔮','💎','🏹','⚙️','🌵','🦋'];
@@ -1077,8 +1130,7 @@ function generarEntrenador(id, div){
 }
 
 function elegirTitularesIniciales(jugadores){
-  // Objetivo: 1 POR + 4 de campo (CIE/ALA/PIV), los mejores disponibles.
-  // Nunca dos porteros. Nunca huecos vacíos.
+  // Formación por defecto: 1-2-1 → 1 POR + 1 CIE + 2 ALA + 1 PIV
   const sorted = pos => jugadores.filter(j=>j.pos===pos).sort((a,b)=>b.media-a.media);
   const porPool = sorted('POR');
   const ciePool = sorted('CIE');
@@ -1087,15 +1139,18 @@ function elegirTitularesIniciales(jugadores){
 
   const sel = [];
 
-  // 1 portero (obligatorio si existe, sino la plaza queda libre para campo)
+  // 1 portero
   if(porPool.length) sel.push(porPool[0].id);
 
-  // Hasta 2 cierres
-  for(const j of ciePool){ if(sel.length>=5) break; sel.push(j.id); if(sel.filter(id=>ciePool.find(x=>x.id===id)).length>=2) break; }
-  // Hasta 2 alas
-  for(const j of alaPool){ if(sel.length>=5) break; if(!sel.includes(j.id)) sel.push(j.id); }
-  // Pívots si aún faltan plazas
-  for(const j of pivPool){ if(sel.length>=5) break; if(!sel.includes(j.id)) sel.push(j.id); }
+  // 1 cierre
+  for(const j of ciePool){ if(!sel.includes(j.id)){ sel.push(j.id); break; } }
+
+  // 2 alas
+  let alasAdded = 0;
+  for(const j of alaPool){ if(sel.length>=5||alasAdded>=2) break; if(!sel.includes(j.id)){ sel.push(j.id); alasAdded++; } }
+
+  // 1 pívot
+  for(const j of pivPool){ if(sel.length>=5) break; if(!sel.includes(j.id)){ sel.push(j.id); break; } }
 
   // Si todavía faltan plazas, rellenar con los mejores jugadores de campo restantes (nunca POR)
   if(sel.length<5){
@@ -1152,6 +1207,22 @@ function generarJugadoresLibres(){
   return libres;
 }
 
+
+// Genera nuevos jugadores libres para una ventana de mercado (enero, etc.)
+// Usa IDs altos y únicos para no colisionar con los existentes
+function generarNuevosLibresVentana(cantidad){
+  const libres=[];
+  const baseId = 90000 + Math.floor(Date.now()/1000 % 10000);
+  for(let i=0;i<cantidad;i++){
+    const j=generarJugador(baseId+i, null, rand(1,3));
+    j.libre=true; j.equipoId=null;
+    j.potencialDescubierto=false;
+    j.analizando=0;
+    j._nuevaVentana=true;
+    libres.push(j);
+  }
+  return libres;
+}
 // ===== CALENDARIO ROUND-ROBIN =====
 function generarCalendario(equipos){
   const ids=[...equipos.map(e=>e.id)];
@@ -1266,7 +1337,7 @@ function inicializarJuego(equipoId){
     entrenamiento:'fisico',
     entrenamientoUsado:false,
     entrenamientoBonus:false,
-    tactica:TACTICAS[0],
+    tactica:'1-2-1',
     darkMode:true,
     currentPage:'inicio',
     equipoTab:0, clasifDiv:div, mercadoTab:0,
@@ -1293,7 +1364,7 @@ function generarObjetivo(div){
 function generarPatrocinador(div){
   const nombres = NOMBRES_PATROCINADORES;
   const nombre = pick(nombres);
-  const base = div===1?rand(8,20):div===2?rand(4,10):rand(1,5);
+  const base = div===1?rand(4000,12000):div===2?rand(1500,5000):rand(500,2000);
   const duracion = rand(1,3);
   // Generar 2-3 bonos
   const bonos = [];
@@ -1304,10 +1375,10 @@ function generarPatrocinador(div){
     const bono = pick(candidatos);
     usados.add(bono.tipo);
     let n, valor;
-    if(bono.tipo==='goles'){n=rand(20,50);valor=rand(5,20);}
-    else if(bono.tipo==='posicion'){n=div===1?rand(1,8):rand(1,5);valor=rand(10,30);}
-    else if(bono.tipo==='victorias'){n=rand(8,18);valor=rand(5,15);}
-    else{n=null;valor=rand(15,40);}
+    if(bono.tipo==='goles'){n=rand(20,50);valor=rand(200,800);}
+    else if(bono.tipo==='posicion'){n=div===1?rand(1,8):rand(1,5);valor=rand(500,2000);}
+    else if(bono.tipo==='victorias'){n=rand(8,18);valor=rand(200,600);}
+    else{n=null;valor=rand(600,2000);}
     bonos.push({tipo:bono.tipo,icono:bono.icono,desc:bono.desc.replace('{n}',n||''),label:bono.label(n||''),valor,n,cumplido:false});
   }
   return {nombre, base, duracion, bonos, activo:true};
@@ -1549,15 +1620,8 @@ function mediaEfectiva(eq, pos){
   if(!jugs.length) return 40;
 
   // Posición "natural" de cada slot según la táctica
-  const tac = G.tactica||'4-0';
-  const slotsPorTac = {
-    '4-0':    ['POR','CIE','CIE','ALA','ALA'],
-    '3-1':    ['POR','CIE','CIE','ALA','PIV'],
-    '2-2':    ['POR','CIE','CIE','PIV','PIV'],
-    '1-2-1':  ['POR','CIE','ALA','ALA','PIV'],
-    'Portero jugador': ['CIE','CIE','ALA','ALA','PIV'],
-  };
-  const slots = slotsPorTac[tac] || slotsPorTac['4-0'];
+  const tac = G.tactica||'1-2-1';
+  const slots = (TACTICAS_INFO[tac]||TACTICAS_INFO['1-2-1']).slots;
 
   const sums = jugs.map((j, idx) => {
     const s = j.stats;
@@ -1580,8 +1644,15 @@ function simularPartido(eqLId, eqVId, esCopa=false, soloSimular=false){
   if(!local||!vis) return null;
   const atkL=mediaEfectiva(local,'ataque'), defL=mediaEfectiva(local,'defensa');
   const atkV=mediaEfectiva(vis,'ataque'), defV=mediaEfectiva(vis,'defensa');
-  const fuerL=(atkL-defV/2)+(local.moral/100)*5+5+rand(-8,8);
-  const fuerV=(atkV-defL/2)+(vis.moral/100)*5+rand(-8,8);
+  // Bonos tácticos
+  const tacInfoL = TACTICAS_INFO[local.tactica||'1-2-1']||TACTICAS_INFO['1-2-1'];
+  const tacInfoV = TACTICAS_INFO[vis.tactica||'1-2-1']||TACTICAS_INFO['1-2-1'];
+  const bonusAtkL = (tacInfoL.bonus.ataque||0)/100;
+  const bonusDefL = (tacInfoL.bonus.defensa||0)/100;
+  const bonusAtkV = (tacInfoV.bonus.ataque||0)/100;
+  const bonusDefV = (tacInfoV.bonus.defensa||0)/100;
+  const fuerL=(atkL*(1+bonusAtkL)-defV*(1+bonusDefV)/2)+(local.moral/100)*5+5+rand(-8,8);
+  const fuerV=(atkV*(1+bonusAtkV)-defL*(1+bonusDefL)/2)+(vis.moral/100)*5+rand(-8,8);
   let golesL=Math.max(0,Math.round(fuerL/18+rand(-1,3)));
   let golesV=Math.max(0,Math.round(fuerV/18+rand(-1,3)));
   const events=[],tarjetas=[];
@@ -1936,6 +2007,12 @@ function avanzarSemana(){
   // Si el mercado acaba de abrirse, registrar la semana de apertura (para insatisfechos)
   if(!_mercadoAbiertoPrevio && G.mercadoAbierto){
     G._mercadoSemanaApertura = G.semana;
+    // En la ventana de enero (no la de agosto/inicio), añadir nuevos jugadores libres
+    if(G.mes===1){
+      const nuevosLibres = generarNuevosLibresVentana(8);
+      G.jugadoresLibres = [...G.jugadoresLibres, ...nuevosLibres];
+      mostrarToast(`📋 ${nuevosLibres.length} nuevos agentes libres disponibles en el mercado de enero`, '');
+    }
   }
   // Si el mercado acaba de cerrarse, caducar todas las contraofertas pendientes
   if(_mercadoAbiertoPrevio && !G.mercadoAbierto){
@@ -2076,6 +2153,13 @@ function avanzarSemana(){
 
   // Fichajes IA entre equipos (mercado abierto)
   if(G.mercadoAbierto&&Math.random()<.3) simularFichajeIA();
+  // Fichajes IA desde agentes libres (más probable en semanas avanzadas del mercado)
+  if(G.mercadoAbierto&&G.jugadoresLibres?.length>0){
+    const semanasMercado = G.semana - (G._mercadoSemanaApertura||G.semana);
+    // A partir de la 2ª semana de mercado los equipos empiezan a fijarse en libres
+    const probLibre = semanasMercado >= 1 ? (semanasMercado >= 3 ? 0.55 : 0.35) : 0.1;
+    if(Math.random() < probLibre) simularFichajeIADesdeLibres();
+  }
 
   // Mercado dinámico: rumores e insatisfechos (agosto=8, enero=1)
   if([8,1].includes(G.mes)) actualizarMercadoDinamico();
@@ -2652,6 +2736,62 @@ function simularFichajeIA(){
   mostrarToast(`⚡ ${comprador.nombre} ficha a ${j.nombre} (${j.pos}) por ${precio}€${razon}`,'');
 }
 
+
+// Fichaje IA desde el pool de jugadores libres
+function simularFichajeIADesdeLibres(){
+  if(!G.jugadoresLibres || G.jugadoresLibres.length === 0) return;
+
+  // Equipos con presupuesto disponible y necesidad de refuerzos
+  const compradores = G.equipos.filter(e => {
+    if(e.id === G.equipoId) return false; // no tocar equipo del usuario
+    const salAnual = e.jugadores.reduce((s,j)=>s+j.salario,0)*52;
+    const reserva = salAnual * 0.3;
+    return e.presupuesto - reserva > 100 && e.jugadores.length < 14;
+  });
+  if(!compradores.length) return;
+
+  // Ordenar por necesidad urgente
+  compradores.sort((a,b)=>{
+    const nA = necesidadesEquipo(a);
+    const nB = necesidadesEquipo(b);
+    if(nA.urgente && !nB.urgente) return -1;
+    if(!nA.urgente && nB.urgente) return 1;
+    return 0;
+  });
+
+  const comprador = compradores[Math.floor(Math.random()*Math.min(3,compradores.length))];
+  const nec = necesidadesEquipo(comprador);
+
+  // Buscar jugador libre que encaje
+  let candidatos = G.jugadoresLibres.filter(j =>
+    (j.pos === nec.pos || !nec.urgente) &&
+    Math.round(j.valor * 0.6) <= nec.presupuestoDisponible
+  );
+
+  // Si no hay encaje de posición, cualquier libre asequible
+  if(!candidatos.length){
+    candidatos = G.jugadoresLibres.filter(j =>
+      Math.round(j.valor * 0.6) <= nec.presupuestoDisponible
+    );
+  }
+  if(!candidatos.length) return;
+
+  candidatos.sort((a,b)=>b.media-a.media);
+  const j = candidatos[Math.floor(Math.random()*Math.min(4,candidatos.length))];
+
+  // Los libres se firman por menos (60-75% del valor)
+  const precio = Math.round(j.valor * (0.6 + Math.random()*0.15));
+  if(comprador.presupuesto < precio) return;
+
+  // Ejecutar fichaje
+  const jFichado = {...j, equipoId:comprador.id, libre:false, transferStatus:null, _nuevaVentana:false};
+  comprador.jugadores.push(jFichado);
+  G.jugadoresLibres = G.jugadoresLibres.filter(x=>x.id !== j.id);
+  comprador.presupuesto -= precio;
+
+  mostrarToast(`📋 ${comprador.nombre} ficha al libre ${j.nombre} (${j.pos}, ${j.media}) por ${precio}€`,'');
+}
+
 // ===== GUARDAR / CARGAR =====
 // ===== SISTEMA DE GUARDADO EN ARCHIVOS JSON =====
 // El slot activo se guarda en memoria para saber el nombre del fichero
@@ -2690,6 +2830,14 @@ function _aplicarMigraciones(obj){
   if(obj._partidoRecienJugado===undefined) obj._partidoRecienJugado=false;
   if(!obj.negociaciones) obj.negociaciones=[];
   if(obj._mercadoSemanaApertura===undefined) obj._mercadoSemanaApertura = obj.mercadoAbierto ? obj.semana : 0;
+  // Migrar tácticas antiguas al nuevo sistema
+  const TACTICAS_OBSOLETAS = {'4-0':'2-1-1','3-1':'1-2-1','2-2':'2-0-2'};
+  if(TACTICAS_OBSOLETAS[obj.tactica]) obj.tactica = TACTICAS_OBSOLETAS[obj.tactica];
+  if(obj.equipos) obj.equipos.forEach(e=>{
+    if(TACTICAS_OBSOLETAS[e.tactica]) e.tactica = TACTICAS_OBSOLETAS[e.tactica];
+  });
+  // Inicializar registro de análisis vistos si no existe
+  if(!obj._analisisVistos) obj._analisisVistos=[];
   return obj;
 }
 
@@ -2780,7 +2928,7 @@ function cargarPartidaDesdeArchivo(file){
 
 function elegirSlotYGuardar(){
   const mc = document.getElementById('modal-container');
-  mc.innerHTML = `<div class="modal-overlay" onclick="if(event.target===this)cerrarModal()">
+  mc.innerHTML = `<div class="modal-overlay">
   <div class="modal" style="max-width:420px">
     <div class="modal-header">
       <div class="modal-title">💾 Guardar partida</div>
@@ -2954,7 +3102,11 @@ function actualizarUI(){
   const nBadge=document.getElementById('nav-noticias');
   if(nBadge){
     const nOfertas=(G.ofertasEntrantes||[]).length;
-    nBadge.innerHTML=`<span class="icon">📬</span>Bandeja${nOfertas>0?` <span style="background:var(--rojo);color:#fff;border-radius:50%;padding:0 5px;font-size:.6rem;vertical-align:middle">${nOfertas}</span>`:''}`;
+    if(!G._analisisVistos) G._analisisVistos=[];
+    const eq2b=miEquipo();
+    const nAnalisisNuevos=[...(eq2b?eq2b.jugadores.filter(j=>j.potencialDescubierto):[]),...(G.jugadoresLibres||[]).filter(j=>j.potencialDescubierto),...(G.cantera||[]).filter(j=>j.potencialDescubierto)].filter(j=>!G._analisisVistos.includes(j.id)).length;
+    const nBadgeTotal=nOfertas+nAnalisisNuevos;
+    nBadge.innerHTML=`<span class="icon">📬</span>Bandeja${nBadgeTotal>0?` <span style="background:var(--rojo);color:#fff;border-radius:50%;padding:0 5px;font-size:.6rem;vertical-align:middle">${nBadgeTotal}</span>`:''}`;
   }
   document.getElementById('sb-name').textContent=eq?.nombre||'?';
   document.getElementById('sb-div').textContent=`${eq?.div}ª División`;
@@ -2993,6 +3145,17 @@ function renderNoticias(){
   const expulsados=eq.jugadores.filter(j=>j.expulsado);
   const agotados=eq.jugadores.filter(j=>(j.fatiga||0)>=80);
   const noticias=G.noticias||[];
+  // Jugadores cuyo análisis acaba de completarse (potencialDescubierto=true, recientes o pendientes de ver)
+  if(!G._analisisVistos) G._analisisVistos=[];
+  // Reunir todos los jugadores analizados: propios + libres + cantera
+  // Reunir todos los jugadores con análisis completado: propios + libres + cantera
+  const todosAnalizados = [
+    ...eq.jugadores.filter(j=>j.potencialDescubierto),
+    ...(G.jugadoresLibres||[]).filter(j=>j.potencialDescubierto),
+    ...(G.cantera||[]).filter(j=>j.potencialDescubierto)
+  ];
+  // "Nuevos" = analizados cuyo id no está en la lista de vistos
+  const analisisNuevos = todosAnalizados.filter(j=>!(G._analisisVistos||[]).includes(j.id));
   // Jugadores cedidos de vuelta (cedidoDesde)
   const cedidosFuera=G.equipos.filter(e=>e.id!==eq.id).flatMap(e=>
     e.jugadores.filter(j=>j.cedidoDesde===eq.id).map(j=>({...j,equipoActual:e.nombre}))
@@ -3002,6 +3165,33 @@ function renderNoticias(){
   }));
 
   return `<div class="animate-in">
+
+  ${analisisNuevos.length>0?`
+  <div class="card mb-3" style="border-color:rgba(0,229,255,.4);background:linear-gradient(135deg,rgba(0,229,255,.06),rgba(0,229,255,.02))">
+    <div class="card-header">
+      <div class="card-title">🔬 Análisis completados <span style="background:var(--acento);color:#000;border-radius:50%;padding:1px 7px;font-size:.72rem;margin-left:6px">${analisisNuevos.length}</span></div>
+      <button class="btn btn-sm btn-secondary" onclick="marcarAnalisisVistos()">✅ Marcar como vistos</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+    ${analisisNuevos.map(j=>{
+      const eq2=G.equipos.find(e=>e.jugadores.some(x=>x.id===j.id));
+      const esLibre=(G.jugadoresLibres||[]).some(x=>x.id===j.id);
+      const esCantera=(G.cantera||[]).some(x=>x.id===j.id);
+      const donde=esLibre?'Libre':esCantera?'Cantera':eq2?eq2.nombre:'Tu equipo';
+      const potColor=j.potencial>=80?'var(--acento2)':j.potencial>=65?'var(--acento)':j.potencial>=50?'var(--naranja)':'var(--texto2)';
+      return `<div style="background:var(--bg3);border-radius:8px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div>
+          <div class="fw-bold">${j.nombre} <span class="pos pos-${j.pos}">${j.pos}</span></div>
+          <div class="text-xs text-muted">${donde} · Media actual: <span class="fw-bold">${j.media}</span></div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.4rem;font-weight:900;color:${potColor}">${j.potencial}</div>
+          <div class="text-xs text-muted">Potencial real</div>
+        </div>
+      </div>`;
+    }).join('')}
+    </div>
+  </div>`:''}
 
   ${ofertas.length>0?`
   <div class="card mb-3" style="border-color:rgba(255,214,10,.4);background:linear-gradient(135deg,rgba(255,214,10,.06),rgba(255,214,10,.02))">
@@ -3935,17 +4125,29 @@ function renderFormacion(eq){
     for(let i=0;i<n;i++) html+= players[i] ? pitchSlot(players[i]) : emptySlot(pos);
     return `<div><div style="text-align:center;font-size:.57rem;color:${POS_COLOR[pos]||'rgba(255,255,255,.4)'};margin-bottom:4px;text-transform:uppercase;letter-spacing:.8px">${label}</div><div class="formation-line">${html}</div></div>`;
   }
-  const tac=G.tactica||'4-0';
+  const tac=G.tactica||'1-2-1';
   let pitchHTML='';
-  if(tac==='4-0')     pitchHTML=buildLine(porT,1,'POR','Portero')+buildLine(cieT,2,'CIE','Cierres')+buildLine(alaT,2,'ALA','Alas');
-  else if(tac==='3-1')pitchHTML=buildLine(porT,1,'POR','Portero')+buildLine(cieT,2,'CIE','Cierres')+buildLine(alaT,1,'ALA','Ala')+buildLine(pivT,1,'PIV','Pívot');
-  else if(tac==='2-2')pitchHTML=buildLine(porT,1,'POR','Portero')+buildLine(cieT,2,'CIE','Cierres')+buildLine(pivT,2,'PIV','Pívots');
-  else if(tac==='1-2-1')pitchHTML=buildLine(porT,1,'POR','Portero')+buildLine(cieT,1,'CIE','Cierre')+buildLine(alaT,2,'ALA','Alas')+buildLine(pivT,1,'PIV','Pívot');
-  else if(tac==='Portero jugador')pitchHTML=buildLine(cieT,2,'CIE','Cierres')+buildLine(alaT,2,'ALA','Alas')+buildLine(pivT,1,'PIV','Pívot');
-  else pitchHTML=buildLine(porT,1,'POR','Portero')+buildLine(cieT,2,'CIE','Cierres')+buildLine(alaT,2,'ALA','Alas');
+  // Construir pitch dinámicamente desde TACTICAS_INFO
+  {
+    const info = TACTICAS_INFO[tac]||TACTICAS_INFO['1-2-1'];
+    const slots = info.slots;
+    const conteo = {POR:0,CIE:0,ALA:0,PIV:0};
+    slots.forEach(s=>conteo[s]=(conteo[s]||0)+1);
+    const pools = {POR:porT,CIE:cieT,ALA:alaT,PIV:pivT};
+    const etiquetas = {POR:'Portero',CIE:'Cierres',ALA:'Alas',PIV:'Pívots'};
+    // Agrupar por posición en orden de aparición única
+    const orden = []; const seen = {};
+    slots.forEach(s=>{ if(!seen[s]){ seen[s]=true; orden.push(s); } });
+    orden.forEach(pos=>pitchHTML+=buildLine(pools[pos],conteo[pos],pos,etiquetas[pos]));
+  }
 
   // Media total de titulares
   const mediaTit = titulares.length ? Math.round(titulares.reduce((a,j)=>a+j.media,0)/titulares.length) : '—';
+
+  const tacInfo = TACTICAS_INFO[tac]||TACTICAS_INFO['1-2-1'];
+  const bonAtk = tacInfo.bonus.ataque, bonDef = tacInfo.bonus.defensa;
+  const bonAtkTxt = bonAtk>0?`<span style="color:var(--acento2)">+${bonAtk}% ataque</span>`:`<span style="color:var(--rojo)">${bonAtk}% ataque</span>`;
+  const bonDefTxt = bonDef>0?`<span style="color:var(--azul-claro)">+${bonDef}% defensa</span>`:`<span style="color:var(--rojo)">${bonDef}% defensa</span>`;
 
   return `<div class="grid-2">
   <div class="card">
@@ -3957,6 +4159,11 @@ function renderFormacion(eq){
           ${TACTICAS.map(t=>`<option value="${t}" ${G.tactica===t?'selected':''}>${t}</option>`).join('')}
         </select>
       </div>
+    </div>
+    <div style="background:var(--bg3);border-radius:8px;padding:8px 12px;margin-bottom:10px;border-left:3px solid ${tacInfo.color}">
+      <div style="font-size:.75rem;font-weight:700;color:${tacInfo.color};margin-bottom:3px">${tac} · ${tacInfo.label}</div>
+      <div style="font-size:.73rem;color:var(--texto2);margin-bottom:5px">${tacInfo.desc}</div>
+      <div style="font-size:.7rem;display:flex;gap:10px;flex-wrap:wrap">${bonAtkTxt} · ${bonDefTxt}</div>
     </div>
     <div class="pitch">
       <div class="pitch-lines"></div>
@@ -4080,7 +4287,7 @@ function renderCuerpoTecnico(eq){
   }
   const e=eq.entrenador;
   const personas=[
-    {emo:'👔',rol:'Entrenador principal',nombre:ct.jefe.nombre,edad:ct.jefe.edad,extra:'Táctica: '+(G.tactica||'4-0'),nivel:e.nivel},
+    {emo:'👔',rol:'Entrenador principal',nombre:ct.jefe.nombre,edad:ct.jefe.edad,extra:'Táctica: '+(G.tactica||'1-2-1'),nivel:e.nivel},
     {emo:'👟',rol:'Segundo entrenador',  nombre:ct.segundo.nombre,edad:ct.segundo.edad,extra:'Asistente técnico',nivel:ct.segundo.nivel},
     {emo:'🏋️',rol:'Preparador físico',   nombre:ct.fisio.nombre,  edad:ct.fisio.edad,  extra:'Condicionamiento',nivel:ct.fisio.nivel}
   ];
@@ -4109,7 +4316,7 @@ function modalCuerpoTecnico(obligatorio=false){
     fisio:  {nombre:'', edad:35, nivel:rand(30,60)}
   };
   const mc = document.getElementById('modal-container');
-  mc.innerHTML = `<div class="modal-overlay" ${obligatorio?'':'onclick="if(event.target===this)cerrarModal()"'}>
+  mc.innerHTML = `<div class="modal-overlay">
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title">👔 Cuerpo técnico</div>
@@ -4660,17 +4867,28 @@ function renderPvAlineacionPanel(eq){
     for(let i=0;i<n;i++) h+=players[i]?pvSlot(players[i]):emptySlot(pos);
     return `<div style="margin-bottom:8px"><div style="text-align:center;font-size:.55rem;color:${POS_COLOR[pos]||'rgba(255,255,255,.4)'};margin-bottom:3px;text-transform:uppercase;letter-spacing:1px">${label}</div><div style="display:flex;justify-content:center;gap:10px">${h}</div></div>`;
   }
-  const tac=G.tactica||'4-0';
+  const tac=G.tactica||'1-2-1';
   let pitchHTML='';
-  if(tac==='4-0') pitchHTML=line(porT,1,'POR','Portero')+line(cieT,2,'CIE','Cierres')+line(alaT,2,'ALA','Alas');
-  else if(tac==='3-1') pitchHTML=line(porT,1,'POR','Portero')+line(cieT,2,'CIE','Cierres')+line(alaT,1,'ALA','Ala')+line(pivT,1,'PIV','Pívot');
-  else if(tac==='2-2') pitchHTML=line(porT,1,'POR','Portero')+line(cieT,2,'CIE','Cierres')+line(pivT,2,'PIV','Pívots');
-  else if(tac==='1-2-1') pitchHTML=line(porT,1,'POR','Portero')+line(cieT,1,'CIE','Cierre')+line(alaT,2,'ALA','Alas')+line(pivT,1,'PIV','Pívot');
-  else pitchHTML=line(porT,1,'POR','Portero')+line(cieT,2,'CIE','Cierres')+line(alaT,2,'ALA','Alas');
+  // Construir pitch dinámicamente desde TACTICAS_INFO
+  {
+    const info = TACTICAS_INFO[tac]||TACTICAS_INFO['1-2-1'];
+    const slots = info.slots;
+    const conteo = {POR:0,CIE:0,ALA:0,PIV:0};
+    slots.forEach(s=>conteo[s]=(conteo[s]||0)+1);
+    const pools = {POR:porT,CIE:cieT,ALA:alaT,PIV:pivT};
+    const etiquetas = {POR:'Portero',CIE:'Cierres',ALA:'Alas',PIV:'Pívots'};
+    const orden = []; const seen = {};
+    slots.forEach(s=>{ if(!seen[s]){ seen[s]=true; orden.push(s); } });
+    orden.forEach(pos=>pitchHTML+=line(pools[pos],conteo[pos],pos,etiquetas[pos]));
+  }
 
   // Selector de táctica — cambia el dibujo sin contar como cambio
+  const pvTacInfo = TACTICAS_INFO[tac]||TACTICAS_INFO['1-2-1'];
+  const pvBonAtk = pvTacInfo.bonus.ataque, pvBonDef = pvTacInfo.bonus.defensa;
+  const pvBonStr = (pvBonAtk>=0?'+':'')+pvBonAtk+'% atk · '+(pvBonDef>=0?'+':'')+pvBonDef+'% def';
   const tacSelector=TACTICAS.map(t=>`<button
     onclick="pvCambiarTactica('${t}')"
+    title="${(TACTICAS_INFO[t]||{}).desc||t}"
     style="padding:4px 10px;border-radius:6px;font-size:.72rem;font-weight:700;border:1px solid ${t===tac?'var(--acento)':'var(--borde)'};background:${t===tac?'rgba(0,229,255,.15)':'var(--bg3)'};color:${t===tac?'var(--acento)':'var(--texto2)'};cursor:pointer;transition:all .15s"
   >${t}</button>`).join('');
 
@@ -4688,6 +4906,7 @@ function renderPvAlineacionPanel(eq){
     <span style="font-size:.7rem;color:var(--texto2);font-weight:600;text-transform:uppercase;letter-spacing:.5px">🗺️ Táctica</span>
     <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">${tacSelector}</div>
   </div>
+  <div style="font-size:.68rem;color:${pvTacInfo.color};margin-bottom:6px;font-weight:600">${tac} · ${pvBonStr}</div>
   <div class="pv-alin-pitch">${pitchHTML}</div>
   <div style="font-size:.72rem;color:var(--texto2);margin-bottom:6px;font-weight:600">Banquillo — pulsa para intercambiar:</div>
   <div style="max-height:120px;overflow-y:auto">${bancH||'<div class="text-muted text-sm">Sin suplentes</div>'}</div>
@@ -7001,7 +7220,14 @@ function renderJugadoresLibres(){
       +'<td>'+(G.mercadoAbierto
         ? ((G.negociaciones||[]).some(n=>n.jugId===j.id&&(n.tipo==='libre_pendiente'||n.tipo==='contraoferta_libre'))
             ? '<span class="text-acento text-xs fw-600">&#x23F3; Pendiente</span>'
-            : '<button class="btn btn-sm btn-primary" onclick="ficharLibre('+j.id+')">&#x1F4E4; Ofertar</button>')
+            : (()=>{
+                const d=miEquipo()?.div||3;
+                const rechazaFijo=(j.media>=80&&d>1)||(j.media>=72&&d===3);
+                const rechazaProbable=(j.media>=72&&d===2)||(j.media>=65&&d===3);
+                if(rechazaFijo) return '<span class="text-rojo text-xs fw-600" title="No considerará equipos de '+d+'ª División">&#x26D4; No interesado</span>';
+                if(rechazaProbable) return '<button class="btn btn-sm btn-secondary" style="opacity:.7" onclick="ficharLibre('+j.id+')" title="Poco probable — aspira a una categoría superior">&#x26A0;&#xFE0F; Ofertar</button>';
+                return '<button class="btn btn-sm btn-primary" onclick="ficharLibre('+j.id+')">&#x1F4E4; Ofertar</button>';
+              })())
         : '<span class="text-muted text-xs">&#x2014;</span>')+'</td>'
       +'</tr>').join(''))
   +'</tbody></table></div></div>';
@@ -7236,6 +7462,8 @@ function avanzarAnalisis(){
           G.noticias.unshift({id:Date.now(), semana:G.semana, temporada:G.temporada,
             texto:`🔬 Análisis completado: <b>${j.nombre}</b> tiene un potencial real de <b>${j.potencial}</b> (media actual: ${j.media}).`,
             tipo:'analisis'});
+          // Retirar de "vistos" para que aparezca en la sección de la Bandeja
+          if(G._analisisVistos) G._analisisVistos = G._analisisVistos.filter(id=>id!==j.id);
         }
       }
     }
@@ -7243,6 +7471,18 @@ function avanzarAnalisis(){
   G.equipos.forEach(e => e.jugadores.forEach(procesar));
   if(G.jugadoresLibres) G.jugadoresLibres.forEach(procesar);
   if(G.cantera) G.cantera.forEach(procesar);
+}
+
+function marcarAnalisisVistos(){
+  if(!G._analisisVistos) G._analisisVistos=[];
+  const eq=miEquipo();
+  const todosAnalizados=[
+    ...(eq?eq.jugadores.filter(j=>j.potencialDescubierto):[]),
+    ...(G.jugadoresLibres||[]).filter(j=>j.potencialDescubierto),
+    ...(G.cantera||[]).filter(j=>j.potencialDescubierto)
+  ];
+  todosAnalizados.forEach(j=>{ if(!G._analisisVistos.includes(j.id)) G._analisisVistos.push(j.id); });
+  guardarPartida(); renderPage();
 }
 
 // ===== OFERTA MEJORADA =====
@@ -7400,7 +7640,7 @@ function hacerOferta(jugId){
     <label class="form-label">Incluir jugador (trueque, opcional)</label>
     <select id="oferta-trueque" class="form-control">
       <option value="">— Sin trueque —</option>
-      ${eq.jugadores.filter(x=>x.id!==jugId).map(x=>`<option value="${x.id}">${x.nombre} (${x.pos}, ${x.media})</option>`).join('')}
+      ${eq.jugadores.filter(x=>x.id!==jugId).sort((a,b)=>{const o={'POR':0,'CIE':1,'ALA':2,'PIV':3};return (o[a.pos]??4)-(o[b.pos]??4)||b.media-a.media;}).map(x=>`<option value="${x.id}">${x.nombre} (${x.pos}, ${x.edad}a, Media ${x.media}, ${x.valor}€)</option>`).join('')}
     </select>
   </div>
   <p class="text-xs text-muted">El equipo puede aceptar, rechazar o pedir más.</p>
@@ -7505,6 +7745,29 @@ function ficharLibre(jugId){
   if(!G.mercadoAbierto){ mostrarToast('El mercado está cerrado','error'); return; }
   const j=G.jugadoresLibres.find(x=>x.id===jugId); if(!j) return;
   const eq=miEquipo();
+  const nombre=j.nombre.split(' ')[0];
+
+  // ── Rechazo inmediato por ambición / diferencia de nivel ────────────
+  // Media ≥80: solo acepta ofertas de 1ª División
+  if(j.media>=80 && eq.div>1){
+    mostrarToast(`⛔ ${nombre} rechaza tu oferta directamente — con su nivel solo considerará clubs de 1ª División.`,'error');
+    return;
+  }
+  // Media 72-79: rechaza 3ª; en 2ª tiene un 40% de rechazo directo
+  if(j.media>=72 && eq.div===3){
+    mostrarToast(`⛔ ${nombre} no está interesado — busca un club de mayor categoría que 3ª División.`,'error');
+    return;
+  }
+  if(j.media>=72 && eq.div===2 && Math.random()<0.40){
+    mostrarToast(`⛔ ${nombre} ha rechazado la oferta. Prefiere esperar una opción en 1ª División.`,'error');
+    return;
+  }
+  // Media 68-71: en 3ª tiene 55% de rechazo directo
+  if(j.media>=68 && eq.div===3 && Math.random()<0.55){
+    mostrarToast(`⛔ ${nombre} declina la oferta — con su nivel aspira a una categoría superior a 3ª División.`,'error');
+    return;
+  }
+
   if(j.pos==='POR' && eq.jugadores.filter(x=>x.pos==='POR').length>=3){
     mostrarToast('⛔ Ya tienes 3 porteros. No puedes fichar más.','error'); return;
   }
@@ -7819,8 +8082,8 @@ function renderFinanzas(){
         <div class="text-sm fw-600 mb-3">Historial reciente</div>
         <div class="scroll-panel" style="max-height:300px">
           ${(G.historialMovimientos||[]).slice(0,15).map(m=>`<div style="padding:6px 0;border-bottom:1px solid var(--borde);font-size:.78rem">
-            <div class="flex" style="justify-content:space-between"><span class="fw-600">${m.jugador}</span><span class="${m.tipo==='venta'?'text-verde':'text-azul'} fw-bold">${m.tipo==='venta'?'+':'-'}${m.cantidad}€</span></div>
-            <div class="text-xs text-muted">${m.tipo==='venta'?'Venta a':'Compra de'} ${m.contraparte} · S${m.semana} T${m.temporada}</div>
+            <div class="flex" style="justify-content:space-between"><span class="fw-600">${m.nombre||m.jugador||'?'} <span class="pos pos-${m.pos||''}">${m.pos||''}</span></span><span class="${m.tipo==='venta'?'text-verde':'text-azul'} fw-bold">${m.tipo==='venta'?'+':'-'}${m.cantidad}€</span></div>
+            <div class="text-xs text-muted">${m.tipo==='venta'?'Venta a':'Cesión a'} ${m.equipo||m.contraparte||'?'} · S${m.semana} T${m.temporada}</div>
           </div>`).join('')||'<div class="text-muted text-sm">Sin movimientos aún</div>'}
         </div>
       </div>
@@ -8012,7 +8275,7 @@ function mostrarModalObligatorio(titulo,bodyHTML,acciones=[],obligatorio=true,he
 
 function mostrarModal(titulo,bodyHTML,acciones=[]){
   const mc=document.getElementById('modal-container');
-  mc.innerHTML=`<div class="modal-overlay" onclick="if(event.target===this)cerrarModal()">
+  mc.innerHTML=`<div class="modal-overlay">
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title">${titulo}</div>
@@ -8248,7 +8511,7 @@ function splashOpciones(){
 
 function mostrarModalSplashOpciones(isDark){
   const mc = document.getElementById('modal-container');
-  mc.innerHTML = `<div class="modal-overlay" onclick="if(event.target===this)cerrarModal()">
+  mc.innerHTML = `<div class="modal-overlay">
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title">⚙️ Opciones</div>
