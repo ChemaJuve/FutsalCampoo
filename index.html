@@ -534,7 +534,7 @@ nav{flex:1;overflow-y:auto;padding:8px 0;}
     onload="this.style.display='block';document.getElementById('splash-screen').classList.add('has-logo-img')"
     onerror="this.style.display='none'">
   <div class="splash-logo" id="splash-logo-text">Fútbol Sala Campoo</div>
-  <div class="splash-badge" id="splash-version-badge">v1.53</div>
+  <div class="splash-badge" id="splash-version-badge">v1.66</div>
   <div class="splash-btns">
     <button class="splash-btn splash-btn-primary" onclick="splashNuevaPartida()">⚽ Nueva partida</button>
     <label class="splash-btn splash-btn-secondary" style="cursor:pointer;text-align:center">
@@ -1662,7 +1662,9 @@ function simularPartido(eqLId, eqVId, esCopa=false, soloSimular=false){
     const jugs=eq.titulares.map(id=>buscarJugador(id)).filter(j=>j&&j.pos!=='POR'&&!j.lesionado&&!j.expulsado);
     for(let i=0;i<goles;i++){
       const sc=jugs.length>0?pick(jugs):null;
-      const as=jugs.length>1?pick(jugs.filter(j=>j!==sc)):null;
+      let as=jugs.length>1?pick(jugs.filter(j=>j!==sc)):null;
+      // Sanity check: si por algún motivo as===sc (no debería pasar con el filtro), anular asistencia
+      if(as && sc && as.id===sc.id) as=null;
       if(sc){arr.push(sc.id);if(!soloSimular)sc.goles++;}
       if(as&&!soloSimular) as.asistencias++;
       events.push({min:rand(1,40),tipo:'gol',equipo:eq.id,jugador:sc?.nombre||'?',asiste:as?.nombre||null,scorerId:sc?.id||null,assistId:as?.id||null});
@@ -1993,14 +1995,17 @@ function avanzarSemana(){
 
   sonido('semana');
   G.semana++;
+  const _entrenamientoUsadoEstaSemana = G.entrenamientoUsado; // Guardar ANTES de resetear
+  const _entrenamientoPrevio = G.entrenamiento || 'fisico';
+  const _entrenamientoBonusPrevio = G.entrenamientoBonus;
   G.entrenamientoUsado=false; // Reset semanal del entrenamiento
   G.entrenamientoBonus=false; // Reset bonus de minijuego
   G._partidoRecienJugado=false; // Reset — ya se puede simular el siguiente
   G._forzarPartidoVisual=null; // Limpiar partido forzado al avanzar semana
   // Calendario: T1=Ago(8). Liga empieza Sep(9), termina May(5). Jun(6)=fin temporada.
-  // Semana 1 = Agosto. Semana 5 = Septiembre. Cada mes ~4 semanas.
+  // Semana 1=Ago, S5=Sep, S9=Oct, S13=Nov, S17=Dic, S21=Ene, ... (4 semanas/mes)
   const mesOffset=(G.semana-1);
-  G.mes=((7+Math.floor(mesOffset/4.3))%12)+1;
+  G.mes=((7+Math.floor(mesOffset/4))%12)+1;
   // Mercado: agosto (8), enero (1)
   const _mercadoAbiertoPrevio = G.mercadoAbierto;
   G.mercadoAbierto=[8,1].includes(G.mes);
@@ -2012,6 +2017,48 @@ function avanzarSemana(){
       const nuevosLibres = generarNuevosLibresVentana(8);
       G.jugadoresLibres = [...G.jugadoresLibres, ...nuevosLibres];
       mostrarToast(`📋 ${nuevosLibres.length} nuevos agentes libres disponibles en el mercado de enero`, '');
+    }
+    // Ejecutar traspasos que quedaron pendientes por mercado cerrado
+    if((G.traspasosPendientes||[]).length > 0){
+      const ejecutados = [];
+      G.traspasosPendientes.forEach(tp => {
+        const eq = miEquipo(); if(!eq) return;
+        const j = eq.jugadores.find(x => x.id === tp.jugadorId);
+        const comprador = G.equipos.find(e => e.id === tp.equipoId);
+        if(!j || !comprador){ return; } // jugador ya no disponible, ignorar
+        comprador.jugadores.push({...j, equipoId:comprador.id, transferStatus:null});
+        eq.jugadores = eq.jugadores.filter(x => x.id !== j.id);
+        eq.titulares = eq.titulares.filter(id => id !== j.id);
+        eq.presupuesto += tp.cantidad; eq.balance += tp.cantidad;
+        comprador.presupuesto -= tp.cantidad;
+        registrarMovimiento('venta', j, comprador.nombre, tp.cantidad);
+        ejecutados.push(j.nombre);
+      });
+      G.traspasosPendientes = [];
+      if(ejecutados.length > 0){
+        mostrarToast(`🔓 Mercado abierto — Se han ejecutado ${ejecutados.length} traspaso${ejecutados.length>1?'s':''} pendiente${ejecutados.length>1?'s':''}: ${ejecutados.join(', ')}`, 'gold');
+      }
+    }
+    // Ejecutar cesiones que quedaron pendientes por mercado cerrado
+    if((G.cesionesPendientes||[]).length > 0){
+      const ejecutadasCes = [];
+      G.cesionesPendientes.forEach(cp => {
+        const eq = miEquipo(); if(!eq) return;
+        const j = eq.jugadores.find(x => x.id === cp.jugadorId);
+        const comprador = G.equipos.find(e => e.id === cp.equipoId);
+        if(!j || !comprador){ return; } // jugador ya no disponible, ignorar
+        const jCopia = {...j, equipoId: comprador.id, cedidoDesde: eq.id, transferStatus: null};
+        comprador.jugadores.push(jCopia);
+        eq.jugadores = eq.jugadores.filter(x => x.id !== j.id);
+        eq.titulares = eq.titulares.filter(id => id !== j.id);
+        eq.presupuesto += cp.cantidad * 4; eq.balance += cp.cantidad * 4;
+        registrarMovimiento('cesion', j, comprador.nombre, cp.cantidad);
+        ejecutadasCes.push(j.nombre);
+      });
+      G.cesionesPendientes = [];
+      if(ejecutadasCes.length > 0){
+        mostrarToast(`🔓 Mercado abierto — Se han ejecutado ${ejecutadasCes.length} cesión${ejecutadasCes.length>1?'es':''} pendiente${ejecutadasCes.length>1?'s':''}: ${ejecutadasCes.join(', ')}`, 'gold');
+      }
     }
   }
   // Si el mercado acaba de cerrarse, caducar todas las contraofertas pendientes
@@ -2036,8 +2083,10 @@ function avanzarSemana(){
       if(j.diasLesion>0){ j.diasLesion--; if(j.diasLesion<=0) j.lesionado=false; }
     }
     // Todos recuperan 12-18 puntos por semana; los lesionados recuperan más (descanso forzado)
-    const recup = j.lesionado ? rand(14,20) : rand(12,18);
-    j.fatiga = clamp((j.fatiga||0) - recup, 0, 100);
+    // Jugadores con fatiga muy alta (>=75) recuperan más para evitar que queden atascados
+    const fat = j.fatiga||0;
+    const recupBase = j.lesionado ? rand(16,22) : fat >= 75 ? rand(16,22) : rand(12,18);
+    j.fatiga = clamp(fat - recupBase, 0, 100);
   };
   G.equipos.forEach(eq => eq.jugadores.forEach(recuperarFatiga));
   G.jugadoresLibres.forEach(recuperarFatiga);
@@ -2222,11 +2271,16 @@ function avanzarSemana(){
   // Entrenamiento del equipo del jugador
   const eqJ=miEquipo();
   if(eqJ){
-    const foco=G.entrenamiento||'fisico';
-    // Fatiga por entrenamiento
+    const foco=_entrenamientoPrevio;
     // Fatiga por entrenamiento (reducida): físico +8, técnico +6, táctico +4, descanso -20 extra
+    // IMPORTANTE: solo aplicar si el entrenamiento fue usado esta semana
     const fatigaEntren = foco==='fisico'?8 : foco==='tecnico'?6 : foco==='tactico'?4 : 0;
     eqJ.jugadores.forEach(j=>{
+      if(!_entrenamientoUsadoEstaSemana){
+        // No se entrenó: recuperación extra de -5 (descanso implícito)
+        j.fatiga = clamp((j.fatiga||0) - 5, 0, 100);
+        return;
+      }
       if(foco==='descanso'){
         // Descanso: recuperación extra de -20 (encima de la recuperación base semanal)
         j.fatiga = clamp((j.fatiga||0) - 20, 0, 100);
@@ -2241,7 +2295,7 @@ function avanzarSemana(){
         if(foco==='tactico'){j.stats.pase=clamp(j.stats.pase+rand(0,1),1,99);j.stats.defensa=clamp(j.stats.defensa+rand(0,1),1,99);}
         if(foco==='tecnico'){j.stats.regate=clamp(j.stats.regate+rand(0,1),1,99);j.stats.tiro=clamp(j.stats.tiro+rand(0,1),1,99);}
         // Bonus por minijuego superado
-        if(G.entrenamientoBonus){
+        if(_entrenamientoBonusPrevio){
           if(foco==='fisico'){j.stats.fisico=clamp(j.stats.fisico+1,1,99);j.stats.velocidad=clamp(j.stats.velocidad+1,1,99);}
           if(foco==='tactico'){j.stats.pase=clamp(j.stats.pase+1,1,99);j.stats.defensa=clamp(j.stats.defensa+1,1,99);}
           if(foco==='tecnico'){j.stats.regate=clamp(j.stats.regate+1,1,99);j.stats.tiro=clamp(j.stats.tiro+1,1,99);}
@@ -2550,17 +2604,26 @@ function aceptarOfertaEntrante(idx){
   if(!G.ofertasEntrantes||!G.ofertasEntrantes[idx]) return;
   const oferta=G.ofertasEntrantes[idx];
   const eq=miEquipo(); if(!eq) return;
-  // Cesiones llegadas esta semana se pueden aceptar aunque el mercado acabe de cerrar
-  if(!G.mercadoAbierto && oferta.tipo==='traspaso'){
-    mostrarToast('❌ El mercado está cerrado. Solo se pueden aceptar cesiones pendientes.','error'); return;
-  }
   const j=eq.jugadores.find(x=>x.id===oferta.jugadorId);
   if(!j){ mostrarToast('Jugador no encontrado','error'); return; }
   const comprador=G.equipos.find(e=>e.id===oferta.equipoId);
   if(!comprador){ mostrarToast('Equipo comprador no encontrado','error'); return; }
 
   if(oferta.tipo==='traspaso'){
-    // Ejecutar traspaso
+    if(!G.mercadoAbierto){
+      // Mercado cerrado: encolar el traspaso para ejecutarlo cuando abra el mercado
+      if(!G.traspasosPendientes) G.traspasosPendientes=[];
+      G.traspasosPendientes.push({
+        jugadorId: j.id, jugadorNombre: j.nombre,
+        equipoId: comprador.id, equipoNombre: comprador.nombre,
+        cantidad: oferta.cantidad
+      });
+      G.ofertasEntrantes.splice(idx,1);
+      mostrarToast(`⏳ Traspaso de ${j.nombre} a ${comprador.nombre} aceptado — se ejecutará cuando abra el mercado de transferencias`, 'gold');
+      cerrarModal(); guardarPartida(); renderPage();
+      return;
+    }
+    // Ejecutar traspaso inmediatamente (mercado abierto)
     comprador.jugadores.push({...j, equipoId:comprador.id, transferStatus:null});
     eq.jugadores=eq.jugadores.filter(x=>x.id!==j.id);
     eq.titulares=eq.titulares.filter(id=>id!==j.id);
@@ -2569,7 +2632,20 @@ function aceptarOfertaEntrante(idx){
     registrarMovimiento('venta', j, comprador.nombre, oferta.cantidad);
     mostrarToast(`✅ ${j.nombre} vendido a ${comprador.nombre} por ${oferta.cantidad}€`,'gold');
   } else if(oferta.tipo==='cesion'){
-    // Ejecutar cesión: el jugador va al otro equipo con referencia al origen para devolver al final
+    if(!G.mercadoAbierto){
+      // Mercado cerrado: encolar la cesión para ejecutarla cuando abra el mercado
+      if(!G.cesionesPendientes) G.cesionesPendientes=[];
+      G.cesionesPendientes.push({
+        jugadorId: j.id, jugadorNombre: j.nombre,
+        equipoId: comprador.id, equipoNombre: comprador.nombre,
+        cantidad: oferta.cantidad
+      });
+      G.ofertasEntrantes.splice(idx,1);
+      mostrarToast(`⏳ Cesión de ${j.nombre} a ${comprador.nombre} aceptada — se ejecutará cuando abra el mercado de transferencias`, 'gold');
+      cerrarModal(); guardarPartida(); renderPage();
+      return;
+    }
+    // Ejecutar cesión inmediatamente (mercado abierto)
     const jCopia={...j, equipoId:comprador.id, cedidoDesde:eq.id, transferStatus:null};
     comprador.jugadores.push(jCopia);
     // Eliminar al jugador de la plantilla cedente (se recuperará al final de temporada)
@@ -2593,12 +2669,44 @@ function rechazarOfertaEntrante(idx){
 }
 
 function mostrarModalOfertas(){
-  if(!G.ofertasEntrantes||!G.ofertasEntrantes.length){
+  const ofertas = G.ofertasEntrantes||[];
+  const pendientes = G.traspasosPendientes||[];
+  const cesionesPend = G.cesionesPendientes||[];
+  if(!ofertas.length && !pendientes.length && !cesionesPend.length){
     mostrarToast('No hay ofertas pendientes','');
     return;
   }
-  const html=`<div>
-    ${G.ofertasEntrantes.map((o,i)=>`
+  let html='<div>';
+  if(pendientes.length){
+    html+=`<div style="background:rgba(255,214,10,.08);border:1px solid rgba(255,214,10,.3);border-radius:10px;padding:12px 14px;margin-bottom:12px">
+      <div class="fw-bold text-oro mb-1">⏳ Traspasos pendientes de ejecutar</div>
+      <div class="text-xs text-muted mb-2">Se ejecutarán automáticamente cuando abra la próxima ventana de mercado.</div>
+      ${pendientes.map((tp,i)=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-top:1px solid var(--borde)">
+        <div>
+          <span class="fw-600">${tp.jugadorNombre}</span>
+          <span class="text-xs text-muted"> → ${tp.equipoNombre} · ${tp.cantidad}€</span>
+        </div>
+        <button class="btn btn-sm btn-danger" onclick="cancelarTraspasoPendiente(${i})">✕ Cancelar</button>
+      </div>`).join('')}
+    </div>`;
+  }
+  if(cesionesPend.length){
+    html+=`<div style="background:rgba(38,103,255,.08);border:1px solid rgba(38,103,255,.3);border-radius:10px;padding:12px 14px;margin-bottom:12px">
+      <div class="fw-bold mb-1" style="color:#6fa3ef">⏳ Cesiones pendientes de ejecutar</div>
+      <div class="text-xs text-muted mb-2">Se ejecutarán automáticamente cuando abra la próxima ventana de mercado.</div>
+      ${cesionesPend.map((cp,i)=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-top:1px solid var(--borde)">
+        <div>
+          <span class="fw-600">${cp.jugadorNombre}</span>
+          <span class="text-xs text-muted"> → ${cp.equipoNombre} · ${cp.cantidad}€/sem</span>
+        </div>
+        <button class="btn btn-sm btn-danger" onclick="cancelarCesionPendiente(${i})">✕ Cancelar</button>
+      </div>`).join('')}
+    </div>`;
+  }
+  if(ofertas.length){
+    html+=ofertas.map((o,i)=>`
     <div style="background:var(--bg3);border-radius:10px;padding:12px 14px;margin-bottom:10px;border:1px solid var(--borde)">
       <div class="flex" style="align-items:center;justify-content:space-between;margin-bottom:8px">
         <div>
@@ -2606,13 +2714,31 @@ function mostrarModalOfertas(){
           <div class="text-xs text-muted">${o.equipoNombre}${(()=>{const div=G.equipos.find(e=>e.id===o.equipoId)?.div;return div?` (${div}ª Div.)`:'';})()} · ${o.tipo==='traspaso'?o.cantidad+'€':o.cantidad+'€/sem'}</div>
         </div>
         <div class="flex gap-2">
-          <button class="btn btn-sm btn-primary" onclick="aceptarOfertaEntrante(${i})" ${!G.mercadoAbierto && o.tipo==='traspaso' ? 'disabled title="Mercado cerrado"' : ''}>✅ Aceptar</button>
+          <button class="btn btn-sm btn-primary" onclick="aceptarOfertaEntrante(${i})">${!G.mercadoAbierto ? '⏳ Aceptar (diferido)' : '✅ Aceptar'}</button>
           <button class="btn btn-sm btn-danger" onclick="rechazarOfertaEntrante(${i})">❌ Rechazar</button>
         </div>
       </div>
-    </div>`).join('')}
-  </div>`;
+      ${!G.mercadoAbierto ? `<div class="text-xs" style="color:var(--oro)">⚠️ Mercado cerrado — si aceptas, el jugador se irá al abrir la próxima ventana de mercado</div>` : ''}
+    </div>`).join('');
+  }
+  html+='</div>';
   mostrarModal('📬 Ofertas recibidas', html);
+}
+
+function cancelarTraspasoPendiente(idx){
+  if(!G.traspasosPendientes||!G.traspasosPendientes[idx]) return;
+  const tp = G.traspasosPendientes[idx];
+  G.traspasosPendientes.splice(idx,1);
+  mostrarToast(`🚫 Traspaso de ${tp.jugadorNombre} cancelado`,'');
+  guardarPartida(); renderPage();
+}
+
+function cancelarCesionPendiente(idx){
+  if(!G.cesionesPendientes||!G.cesionesPendientes[idx]) return;
+  const cp = G.cesionesPendientes[idx];
+  G.cesionesPendientes.splice(idx,1);
+  mostrarToast(`🚫 Cesión de ${cp.jugadorNombre} cancelada`,'');
+  guardarPartida(); renderPage();
 }
 
 // ===== FICHAJES IA =====
@@ -2806,6 +2932,7 @@ function _aplicarMigraciones(obj){
   if(!obj.historialTemporadas) obj.historialTemporadas=[];
   if(!obj.plantillaSort) obj.plantillaSort={col:'pos',dir:1};
   if(!obj.ofertasEntrantes) obj.ofertasEntrantes=[];
+  if(!obj.traspasosPendientes) obj.traspasosPendientes=[];
   if(obj.cuerpoTecnico===undefined) obj.cuerpoTecnico=null;
   if(!obj.historialMovimientos) obj.historialMovimientos=[];
   if(!obj.cantera) obj.cantera=[];
@@ -2983,7 +3110,7 @@ function confirmarAvanzarSemana(){
 
   // Calcular el mes que resultará DESPUÉS de avanzar
   const mesOffset = G.semana;
-  const mesSiguiente = ((7 + Math.floor(mesOffset / 4.3)) % 12) + 1;
+  const mesSiguiente = ((7 + Math.floor(mesOffset / 4)) % 12) + 1;
 
   // Aviso cierre de mercado: mercado abierto ahora pero se cerrará tras avanzar
   if(G.mercadoAbierto && ![8,1].includes(mesSiguiente)){
@@ -3011,7 +3138,7 @@ function _avisoPartidoYAvanzar(){
   const eq=miEquipo(); if(!eq){ avanzarSemana(); return; }
 
   const mesOffset = G.semana;
-  const mesSiguiente = ((7 + Math.floor(mesOffset / 4.3)) % 12) + 1;
+  const mesSiguiente = ((7 + Math.floor(mesOffset / 4)) % 12) + 1;
   const ligaActivaTras = mesSiguiente >= 9 || mesSiguiente <= 5;
 
   // Si el mercado sigue abierto ahora y se va a cerrar al avanzar,
@@ -3020,6 +3147,23 @@ function _avisoPartidoYAvanzar(){
   // No mostrar aviso de partido: simplemente avanzar.
   if(G.mercadoAbierto && ![8,1].includes(mesSiguiente)){
     avanzarSemana(); return;
+  }
+
+  // Detectar partido de copa del usuario en la ronda activa
+  let copaPartido = null;
+  if(G.copa && !G.copa.terminada && (G.copa.fase==='rondas_previas'||G.copa.fase==='semis_final')){
+    const rondaCopa = G.copa.rondas[G.copa.rondaActual];
+    if(rondaCopa){
+      // Solo mostrar copa si la fase semis_final puede jugar (todas las ligas terminadas)
+      const puedeJugarCopa = G.copa.fase==='rondas_previas' ||
+        (G.copa.fase==='semis_final' && G.ligas.every(l=>l.terminada));
+      if(puedeJugarCopa){
+        const pCopa = rondaCopa.partidos.find(p=>
+          !p.jugado && (p.local===eq.id || p.visitante===eq.id)
+        );
+        if(pCopa) copaPartido = pCopa;
+      }
+    }
   }
 
   let np = null;
@@ -3034,6 +3178,39 @@ function _avisoPartidoYAvanzar(){
         if(p) np = {...p, jornada: liga.jornada + 1};
       }
     }
+  }
+
+  // Partido de copa tiene prioridad si no hay partido de liga o la liga ya terminó
+  if(copaPartido && !np){
+    const esL = copaPartido.local === eq.id;
+    const rival = G.equipos.find(e=>e.id===(esL?copaPartido.visitante:copaPartido.local));
+    const rondaNombre = G.copa.rondas[G.copa.rondaActual]?.nombre || 'Copa';
+    G._forzarPartidoVisual = {...copaPartido, esCopa:true, _rondaNombre:rondaNombre};
+    const titDisp = eq.titulares.map(id=>buscarJugador(id)).filter(j=>j&&!j.lesionado&&!j.expulsado);
+    const alinOk = eq.titulares.length >= 5 && titDisp.length >= 5;
+    const alinWarning = !alinOk
+      ? `<div style="background:rgba(230,57,70,.1);border:1px solid rgba(230,57,70,.3);border-radius:8px;padding:8px 12px;margin-top:8px;font-size:.8rem;color:var(--rojo)">
+          ⚠️ <b>Alineación incompleta.</b> El partido se simulará automáticamente con los jugadores disponibles.
+         </div>` : '';
+    mostrarModal('🏆 Partido de Copa',
+      `<div style="text-align:center;padding:10px 0">
+        <div style="font-size:2rem;margin-bottom:6px">🏆</div>
+        <div class="text-oro fw-600 mb-2">${rondaNombre} — Copa de Campoo</div>
+        <div class="text-muted text-sm mb-3">Al avanzar esta semana se disputará:</div>
+        <div style="font-size:1rem;font-weight:700;margin-bottom:6px">${eq.nombre} vs ${rival?.nombre||'?'}</div>
+        <div class="text-xs text-muted">Eliminatoria directa · El empate se decide en penaltis</div>
+        <div class="divider"></div>
+        <div class="text-sm text-muted">Puedes ir a <b>Partido</b> para verlo en modo visual antes de avanzar.</div>
+        ${alinWarning}
+      </div>`,
+      [{label:'✕ Cancelar', cls:'btn-secondary', action:()=>{G._forzarPartidoVisual=null;cerrarModal();}},
+       {label:'🎬 Ver en modo visual', cls:'btn-gold', action:()=>{
+         if(!comprobarAlineacion()){G._forzarPartidoVisual=null;return;}
+         cerrarModal();navTo('partido',null);setTimeout(iniciarPartidoVisual,200);
+       }},
+       {label:'⚡ Simular y avanzar', cls:'btn-primary', action:()=>{G._forzarPartidoVisual=null;cerrarModal();avanzarSemana();}}]
+    );
+    return;
   }
 
   if(!np){ avanzarSemana(); return; }
@@ -3117,8 +3294,7 @@ function actualizarUI(){
     ? G.historial.filter(h => h.liga === eq.div && !h.esCopa).reduce((max, h) => Math.max(max, h.jornada||0), 0)
     : 0;
   const _jornadaLabel = _ultimaJornada > 0 ? `J${_ultimaJornada}` : (G.mercadoAbierto ? 'Pre' : 'J0');
-  const _mesCalc = ((7 + Math.floor((G.semana - 1) / 4.3)) % 12) + 1;
-  document.getElementById('semana-info').textContent=`📅 ${getMesNombre(_mesCalc)} ${_jornadaLabel} · T${G.temporada}`;
+  document.getElementById('semana-info').textContent=`📅 ${getMesNombre(G.mes)} ${_jornadaLabel} · T${G.temporada}`;
   document.body.classList.toggle('light',!G.darkMode);
   // Botón avanzar
   const btn=document.getElementById('btn-avanzar');
@@ -3206,7 +3382,7 @@ function renderNoticias(){
         <div class="text-xs text-muted mt-1">${o.tipo==='traspaso'?o.cantidad+'€':o.cantidad+'€/sem'} · S${o.semana}</div>
       </div>
       <div class="flex gap-2">
-        <button class="btn btn-sm btn-primary" onclick="aceptarOfertaEntrante(${i})" ${!G.mercadoAbierto && o.tipo==='traspaso' ? 'disabled title="Mercado cerrado"' : ''}>✅ Aceptar</button>
+        <button class="btn btn-sm btn-primary" onclick="aceptarOfertaEntrante(${i})">${!G.mercadoAbierto && o.tipo==='traspaso' ? '⏳ Aceptar (diferido)' : '✅ Aceptar'}</button>
         <button class="btn btn-sm btn-danger" onclick="rechazarOfertaEntrante(${i})">❌ Rechazar</button>
       </div>
     </div>`).join('')}
@@ -3667,13 +3843,15 @@ function minijuegoTecnico(){
 ───────────────────────────────────────────── */
 function minijuegoTactico(){
   return new Promise(resolve=>{
-    // Posiciones correctas y sus coordenadas en la cancha (center x%, center y%)
+    // Posiciones correctas y sus coordenadas en la cancha (px absolutos sobre 280x180)
+    // El campo es 280px ancho x 180px alto, las zonas son 42px de diámetro
+    // left/top apuntan a la esquina superior-izquierda de la zona (centro - 21px)
     const ZONAS=[
-      {id:'z-por', label:'POR', correcto:'POR', x:50, y:82},
-      {id:'z-cie1',label:'CIE', correcto:'CIE', x:25, y:58},
-      {id:'z-cie2',label:'CIE', correcto:'CIE', x:75, y:58},
-      {id:'z-ala1',label:'ALA', correcto:'ALA', x:15, y:28},
-      {id:'z-ala2',label:'ALA', correcto:'ALA', x:85, y:28},
+      {id:'z-por', label:'POR', correcto:'POR', px:119, py:124},  // centro x=140, y=145
+      {id:'z-cie1',label:'CIE', correcto:'CIE', px:49,  py:82},   // x=70,  y=103
+      {id:'z-cie2',label:'CIE', correcto:'CIE', px:189, py:82},   // x=210, y=103
+      {id:'z-ala1',label:'ALA', correcto:'ALA', px:21,  py:29},   // x=42,  y=50
+      {id:'z-ala2',label:'ALA', correcto:'ALA', px:217, py:29},   // x=238, y=50
     ];
     // Fichas a arrastrar (barajadas)
     const FICHAS_BASE=['POR','CIE','CIE','ALA','ALA'];
@@ -3700,7 +3878,7 @@ function minijuegoTactico(){
             <div id="mj-timer-bar-wrap"><div id="mj-timer-bar" style="width:100%"></div></div>
             <div id="mj-cancha">${ZONAS.map(z=>`
               <div class="mj-drop-zone" id="${z.id}" data-correcto="${z.correcto}"
-                style="left:${z.x-7.5}%;top:${z.y-11.7}%">
+                style="left:${z.px}px;top:${z.py}px">
                 <span style="font-size:.6rem;color:rgba(255,255,255,.5)">${z.label}</span>
               </div>`).join('')}
             </div>
@@ -4490,6 +4668,13 @@ function _procesarPostJornada(res, np, liga, jornadaIdx, eq){
 
   // Actualizar tabla con el resultado del partido del usuario
   actualizarTabla(np.local, np.visitante, res.golesL, res.golesV);
+  // Marcar el entry del historial como actualizado para evitar doble conteo
+  const _entryUsuario = G.historial.find(h =>
+    h.liga === liga.div && h.jornada === jornadaIdx+1 &&
+    !h._tablaActualizada &&
+    ((h.local===np.local&&h.vis===np.visitante)||(h.local===np.visitante&&h.vis===np.local))
+  );
+  if(_entryUsuario) _entryUsuario._tablaActualizada = true;
 
   // Simular el resto de partidos de todas las ligas en esta jornada
   simularJornadaCompleta(liga, jornadaIdx, {local: np.local, visitante: np.visitante});
@@ -4669,7 +4854,9 @@ function simularRapido(){
   // 1. Simular el partido del usuario
   const res=simularPartido(np.local,np.visitante,false);
   if(!res){ mostrarToast('Error al simular','error'); return; }
-  G.historial.push({semana:G.semana,...res,liga:liga.div,jornada:liga.jornada+1,_tablaActualizada:true});
+  // NOTA: NO marcar _tablaActualizada:true aquí — _procesarPostJornada llama actualizarTabla
+  // y luego marca el entry como actualizado. Marcarlo aquí causaría doble actualización de puntos.
+  G.historial.push({semana:G.semana,...res,liga:liga.div,jornada:liga.jornada+1,_tablaActualizada:false});
 
   // 2. Lógica post-jornada unificada (tabla, resto de ligas, noticias, mercado, análisis…)
   _procesarPostJornada(res, np, liga, liga.jornada, eq);
@@ -4692,20 +4879,23 @@ function iniciarPartidoVisual(){
 
   const np=G._forzarPartidoVisual||getProximoPartido(eq.id); if(!np) return;
 
-  // Buscar la liga correcta
+  // Partido de copa: camino especial
+  const esCopa = !!(np.esCopa);
+
+  // Buscar la liga correcta (null para copa)
   const eqLocal=G.equipos.find(e=>e.id===np.local);
   const divPartido=eqLocal?.div ?? eq.div;
-  const liga=G.ligas.find(l=>l.div===divPartido);
-  if(!liga) return;
+  const liga = esCopa ? null : G.ligas.find(l=>l.div===divPartido);
+  if(!esCopa && !liga) return;
 
   const local=G.equipos.find(e=>e.id===np.local);
   const vis=G.equipos.find(e=>e.id===np.visitante);
   const esLocal=np.local===eq.id;
   const rival=esLocal?vis:local;
 
-  const res=simularPartido(np.local,np.visitante,false,true);
+  const res=simularPartido(np.local,np.visitante,esCopa,true);
   if(!res) return;
-  G._partidoVisual={res,np,liga,jornadaIdx:liga.jornada};
+  G._partidoVisual={res,np,liga,jornadaIdx: liga ? liga.jornada : 0, esCopa};
 
   // Generar timeline real con 2 períodos de 20 minutos
   // Cada partido tiene eventos entre 1-40'. Usamos el espacio entre eventos para simular tiempo real.
@@ -4799,8 +4989,11 @@ function pvSetPanel(panel){
 }
 
 function renderPvCambioPanel(eq){
-  const titulares=eq.titulares.map(id=>buscarJugador(id)).filter(Boolean);
-  const suplentes=eq.jugadores.filter(j=>!eq.titulares.includes(j.id)&&!j.lesionado);
+  const POS_ORDER={'POR':0,'CIE':1,'ALA':2,'PIV':3};
+  const titulares=eq.titulares.map(id=>buscarJugador(id)).filter(Boolean)
+    .sort((a,b)=>(POS_ORDER[a.pos]??9)-(POS_ORDER[b.pos]??9)||b.media-a.media);
+  const suplentes=eq.jugadores.filter(j=>!eq.titulares.includes(j.id)&&!j.lesionado)
+    .sort((a,b)=>(POS_ORDER[a.pos]??9)-(POS_ORDER[b.pos]??9)||b.media-a.media);
   const POS_COLOR={'POR':'#ffd60a','CIE':'#6fa3ef','ALA':'#40916c','PIV':'#e63946'};
   function fatChip(f){
     const p=f||0,cls=p>=70?'alta':p>=40?'med':'ok';
@@ -4846,40 +5039,61 @@ function renderPvAlineacionPanel(eq){
   const titulares=eq.titulares.map(id=>buscarJugador(id)).filter(Boolean);
   const enBanco=eq.jugadores.filter(j=>!eq.titulares.includes(j.id));
   const POS_COLOR={'POR':'#ffd60a','CIE':'#6fa3ef','ALA':'#40916c','PIV':'#e63946'};
-  const porT=titulares.filter(j=>j.pos==='POR');
-  const cieT=titulares.filter(j=>j.pos==='CIE');
-  const alaT=titulares.filter(j=>j.pos==='ALA');
-  const pivT=titulares.filter(j=>j.pos==='PIV');
 
-  function pvSlot(j){
-    const col=POS_COLOR[j.pos]||'#fff';
+  function pvSlot(j, slotPos){
+    // Usar el color del slot táctico, no de la posición nominal del jugador
+    const col=POS_COLOR[slotPos]||POS_COLOR[j.pos]||'#fff';
+    // Indicar si el jugador está fuera de su posición natural
+    const fueraPosicion = j.pos !== slotPos;
+    const nota = fueraPosicion ? `<span style="font-size:.5rem;color:${col};opacity:.8">↔${j.pos}</span>` : '';
     return `<div class="pv-alin-slot filled" style="border-color:${col};background:${col}22" onclick="pvAlinClick(${j.id},'titular')">
       <span style="font-size:.65rem;font-weight:700">${j.nombre.split(' ')[0].slice(0,6)}</span>
       <span style="font-size:.7rem;font-weight:900;color:${col}">${j.media}</span>
+      ${nota}
     </div>`;
   }
   function emptySlot(pos){
     const col=POS_COLOR[pos]||'rgba(255,255,255,.3)';
     return `<div class="pv-alin-slot" style="border-color:${col}55;opacity:.5;font-size:.65rem;color:${col}">+</div>`;
   }
-  function line(players,n,pos,label){
+  function line(slotPlayers, pos, label){
     let h='';
-    for(let i=0;i<n;i++) h+=players[i]?pvSlot(players[i]):emptySlot(pos);
+    slotPlayers.forEach(entry => {
+      h += entry.j ? pvSlot(entry.j, pos) : emptySlot(pos);
+    });
     return `<div style="margin-bottom:8px"><div style="text-align:center;font-size:.55rem;color:${POS_COLOR[pos]||'rgba(255,255,255,.4)'};margin-bottom:3px;text-transform:uppercase;letter-spacing:1px">${label}</div><div style="display:flex;justify-content:center;gap:10px">${h}</div></div>`;
   }
   const tac=G.tactica||'1-2-1';
   let pitchHTML='';
-  // Construir pitch dinámicamente desde TACTICAS_INFO
+  // Construir pitch asignando titulares a slots por orden táctico.
+  // Esto garantiza que los cambios portero↔jugador de campo se muestren correctamente,
+  // ya que un jugador puede ocupar cualquier slot independientemente de su pos nominal.
   {
     const info = TACTICAS_INFO[tac]||TACTICAS_INFO['1-2-1'];
-    const slots = info.slots;
-    const conteo = {POR:0,CIE:0,ALA:0,PIV:0};
-    slots.forEach(s=>conteo[s]=(conteo[s]||0)+1);
-    const pools = {POR:porT,CIE:cieT,ALA:alaT,PIV:pivT};
+    const slots = info.slots; // e.g. ['POR','CIE','CIE','ALA','PIV']
+    // Construir pools priorizando jugadores cuya posición nominal coincide con el slot,
+    // y rellenando el resto con los que sobran (cambios de posición).
+    const disponibles = [...titulares];
+    const asignados = new Array(slots.length).fill(null);
+    // Pasada 1: asignar coincidencias exactas de posición
+    slots.forEach((slotPos, i) => {
+      const idx = disponibles.findIndex(j => j.pos === slotPos);
+      if(idx !== -1){ asignados[i] = disponibles.splice(idx, 1)[0]; }
+    });
+    // Pasada 2: rellenar huecos con jugadores sobrantes (fuera de posición)
+    let sobrante = 0;
+    asignados.forEach((v, i) => {
+      if(!v && sobrante < disponibles.length){ asignados[i] = disponibles[sobrante++]; }
+    });
+    // Agrupar por tipo de slot para renderizar líneas
     const etiquetas = {POR:'Portero',CIE:'Cierres',ALA:'Alas',PIV:'Pívots'};
     const orden = []; const seen = {};
     slots.forEach(s=>{ if(!seen[s]){ seen[s]=true; orden.push(s); } });
-    orden.forEach(pos=>pitchHTML+=line(pools[pos],conteo[pos],pos,etiquetas[pos]));
+    orden.forEach(pos => {
+      const indices = slots.reduce((acc,s,i)=>{ if(s===pos) acc.push(i); return acc; },[]);
+      const slotPlayers = indices.map(i => ({j: asignados[i]}));
+      pitchHTML += line(slotPlayers, pos, etiquetas[pos]);
+    });
   }
 
   // Selector de táctica — cambia el dibujo sin contar como cambio
@@ -4917,7 +5131,8 @@ function renderPvAlineacionPanel(eq){
 function pvCambiarTactica(nuevaTactica){
   if(!_pvState) return;
   G.tactica = nuevaTactica;
-  guardarPartida();
+  // NO llamamos guardarPartida() aquí para no persistir los titulares mid-partido.
+  // La táctica se guardará al confirmar el resultado junto con el resto del estado.
   // Redibujar solo el panel de alineación sin pausar ni tocar el timer
   const panelAlin=document.getElementById('pv-panel-alin');
   if(panelAlin) panelAlin.innerHTML=renderPvAlineacionPanel(_pvState.eq);
@@ -5001,7 +5216,8 @@ function resimularDesdeMinuto(minActual, gL, gV, titularesLocal, titularesVis){
     const jugs = titIds.map(id=>buscarJugador(id)).filter(j=>j&&j.pos!=='POR'&&!j.lesionado);
     for(let i=0; i<numGoles; i++){
       const sc = jugs.length>0 ? pick(jugs) : null;
-      const as = jugs.length>1 ? pick(jugs.filter(j=>j!==sc)) : null;
+      let as = jugs.length>1 ? pick(jugs.filter(j=>j!==sc)) : null;
+      if(as && sc && as.id===sc.id) as=null;
       const minGol = rand(minActual+1, TOTAL_MIN);
       nuevosEventos.push({
         min: minGol,
@@ -5099,7 +5315,7 @@ function pvAplicarCambioAlin(saleId, entraId){
   // Registrar jugador saliente con el minuto real de salida
   if(sale?.nombre){
     const yaRegistrado = _pvState.jugadoresSalidos.some(s=>s.nombre===sale.nombre);
-    if(!yaRegistrado) _pvState.jugadoresSalidos.push({nombre:sale.nombre, id:sale.id, minSalida:_pvState.minActual});
+    if(!yaRegistrado) _pvState.jugadoresSalidos.push({nombre:sale.nombre, id:sale.id, equipoId:sale.equipoId, minSalida:_pvState.minActual});
   }
   pvLogEvento({min:_pvState.minActual,tipo:'cambio',jugador:entra?.nombre||'?',sale:sale?.nombre||'?',equipo:eq.id});
   sonido('cambio');
@@ -5147,7 +5363,7 @@ function pvAplicarCambio(){
   // Registrar jugador saliente con el minuto real de salida
   if(sale?.nombre){
     const yaRegistrado = _pvState.jugadoresSalidos.some(s=>s.nombre===sale.nombre);
-    if(!yaRegistrado) _pvState.jugadoresSalidos.push({nombre:sale.nombre, id:sale.id, minSalida:_pvState.minActual});
+    if(!yaRegistrado) _pvState.jugadoresSalidos.push({nombre:sale.nombre, id:sale.id, equipoId:sale.equipoId, minSalida:_pvState.minActual});
   }
   pvLogEvento({min:_pvState.minActual,tipo:'cambio',jugador:entra?.nombre||'?',sale:sale?.nombre||'?',equipo:eq.id});
   sonido('cambio');
@@ -5179,9 +5395,12 @@ function pvAplicarCambio(){
 
 // Devuelve true si el jugador (por nombre) estaba en campo en el minuto dado
 // según los cambios registrados en _pvState.jugadoresSalidos
-function pvJugadorEnCampoEn(nombre, min){
+function pvJugadorEnCampoEn(nombre, min, equipoId){
   if(!_pvState) return true;
-  const salida = _pvState.jugadoresSalidos.find(s => s.nombre === nombre);
+  // Si se pasa equipoId, filtrar solo salidas de ese equipo (evita confusión entre homónimos)
+  const salida = _pvState.jugadoresSalidos.find(s =>
+    s.nombre === nombre && (!equipoId || !s.equipoId || s.equipoId === equipoId)
+  );
   if(!salida) return true;           // no salió nunca → estaba en campo
   return min < salida.minSalida;     // solo estaba si el min es ANTES de su salida
 }
@@ -5239,12 +5458,16 @@ function pvTick(){
 
     if(ev.tipo==='gol'){
       // Si el goleador ya había salido ANTES de este minuto, reasignar a quien esté en campo
-      if(!pvJugadorEnCampoEn(ev.jugador, item.min)){
+      if(!pvJugadorEnCampoEn(ev.jugador, item.min, ev.equipo)){
         const sust = pvJugadorAleatorioEnCampo(ev.equipo, item.min);
-        ev.jugador = sust?.nombre || ev.jugador;
+        if(sust){
+          ev.jugador = sust.nombre;
+          // Asegurar que ev.equipo apunta al equipo correcto del sustituto
+          if(sust.equipoId) ev.equipo = sust.equipoId;
+        }
       }
       // Si el asistente ya había salido, quitar la asistencia (no puede asistir desde el banquillo)
-      if(ev.asiste && !pvJugadorEnCampoEn(ev.asiste, item.min)){
+      if(ev.asiste && !pvJugadorEnCampoEn(ev.asiste, item.min, ev.equipo)){
         ev.asiste = null;
       }
       if(ev.equipo===_pvState.np.local) _pvState.gL++; else _pvState.gV++;
@@ -5300,7 +5523,7 @@ function pvTick(){
             const mejor = suplentesRival.sort((a,b)=>b.media-a.media)[0];
             eqRival.titulares = eqRival.titulares.filter(id=>id!==jugLesionadoRival.id);
             eqRival.titulares.push(mejor.id);
-            _pvState.jugadoresSalidos.push({nombre:jugLesionadoRival.nombre, id:jugLesionadoRival.id, minSalida:item.min});
+            _pvState.jugadoresSalidos.push({nombre:jugLesionadoRival.nombre, id:jugLesionadoRival.id, equipoId:jugLesionadoRival.equipoId, minSalida:item.min});
             pvLogEvento({min:item.min,tipo:'cambio',jugador:mejor.nombre,sale:jugLesionadoRival.nombre,equipo:eqRival.id});
             mostrarToast(`🤖 ${eqRival.nombre}: ${mejor.nombre} entra por ${jugLesionadoRival.nombre} (lesión)`);
           }
@@ -5333,7 +5556,7 @@ function pvTick(){
           if(saleEnCampo && entraDisp){
             eqIA.titulares = eqIA.titulares.filter(id => id !== jugSale.id);
             eqIA.titulares.push(jugEntra.id);
-            _pvState.jugadoresSalidos.push({nombre:jugSale.nombre, id:jugSale.id, minSalida:item.min});
+            _pvState.jugadoresSalidos.push({nombre:jugSale.nombre, id:jugSale.id, equipoId:jugSale.equipoId, minSalida:item.min});
             pvLogEvento({min:item.min, tipo:'cambio', jugador:jugEntra.nombre, sale:jugSale.nombre, equipo:eqIA.id});
             setTimeout(()=>mostrarToast(`🤖 ${eqIA.nombre}: ${jugEntra.nombre} ↔ ${jugSale.nombre}`), 80);
           }
@@ -5547,7 +5770,24 @@ function aplicarResultadoVisual(){
     j.goles      = (j.goles||0) + golesJ;
     j.asistencias= (j.asistencias||0) + asistTotal;
     j.pjugados   = (j.pjugados||0) + 1;
-    j.fatiga     = clamp((j.fatiga||0) + 6, 0, 100);
+
+    // Fatiga proporcional a los minutos reales jugados (partido visual = 40')
+    // Un partido completo suma +6; quien jugó poco suma menos.
+    const TOTAL_MIN_PARTIDO = 40;
+    let minJugado = TOTAL_MIN_PARTIDO; // por defecto: jugó todo
+    // ¿Entró por cambio? → solo jugó desde su minuto de entrada
+    const evEntrada = events.find(ev => ev.tipo==='cambio' && ev.equipo===equipoJ && ev.entraId===j.id);
+    if(evEntrada) minJugado = TOTAL_MIN_PARTIDO - (evEntrada.min || 0);
+    // ¿Salió por cambio? → solo jugó hasta su minuto de salida
+    // Buscar en jugadoresSalidos del pvState si está disponible
+    const dataSalida = _pvState?.jugadoresSalidos?.find(s => s.id === j.id);
+    if(dataSalida) minJugado = Math.min(minJugado, dataSalida.minSalida || TOTAL_MIN_PARTIDO);
+    // También buscar en eventos de cambio del propio partido
+    const evSalida = events.find(ev => ev.tipo==='cambio' && ev.equipo===equipoJ && ev.saleId===j.id);
+    if(evSalida) minJugado = Math.min(minJugado, evSalida.min || minJugado);
+    minJugado = Math.max(0, minJugado);
+    const fatigaGanada = Math.round(6 * minJugado / TOTAL_MIN_PARTIDO);
+    j.fatiga     = clamp((j.fatiga||0) + fatigaGanada, 0, 100);
     j.forma      = clamp((j.forma||60) + rand(-3, 5), 30, 100);
     // Tarjetas — también filtrar por equipo
     tarjJ.forEach(t=>{
@@ -5575,11 +5815,57 @@ function aplicarResultadoVisual(){
   if(res.golesL>res.golesV){local&&(local.moral=clamp(local.moral+5,0,100));vis&&(vis.moral=clamp(vis.moral-5,0,100));}
   else if(res.golesV>res.golesL){vis&&(vis.moral=clamp(vis.moral+5,0,100));local&&(local.moral=clamp(local.moral-5,0,100));}
 
-  // 3. Guardar resultado del partido del usuario y actualizar tabla (gestionado en _procesarPostJornada)
+  G._partidoVisual=null;
+
+  // 3a. Camino de COPA
+  if(pv.esCopa){
+    // Marcar el partido en la ronda activa como jugado con el resultado del usuario
+    const ronda = G.copa?.rondas?.[G.copa.rondaActual];
+    if(ronda){
+      const pCopa = ronda.partidos.find(p=>
+        (p.local===np.local && p.visitante===np.visitante) ||
+        (p.local===np.visitante && p.visitante===np.local)
+      );
+      if(pCopa && !pCopa.jugado){
+        pCopa.jugado=true; pCopa.resultado=res;
+        let gan;
+        if(res.golesL>res.golesV) gan=np.local;
+        else if(res.golesV>res.golesL) gan=np.visitante;
+        else gan=Math.random()>.5?np.local:np.visitante;
+        pCopa.ganador=gan;
+        G.historial.push({semana:G.semana,...res,liga:'copa',esCopa:true});
+        const eq2=miEquipo();
+        const esL=np.local===eq2?.id;
+        const gP=esL?res.golesL:res.golesV, gR=esL?res.golesV:res.golesL;
+        if(gP>gR) sonido('victoria'); else if(gP<gR) sonido('error');
+        const clasificado = gan===eq2?.id;
+        mostrarToast(
+          clasificado
+            ? `🏆 ¡${gP}–${gR}! Clasificado para la siguiente ronda`
+            : `❌ ${gP}–${gR} · Eliminado de la Copa`,
+          clasificado?'gold':'error'
+        );
+      }
+    }
+    // Post-partido copa: mercado, análisis, noticias pero NO jornada de liga
+    G._forzarPartidoVisual=null;
+    G._partidoRecienJugado=true;
+    G.entrenamientoUsado=false;
+    resolverOfertasPendientes();
+    procesarOfertasEntrantes();
+    avanzarOjeador();
+    avanzarAnalisis();
+    actualizarNoticias();
+    guardarPartida(true);
+    actualizarUI();
+    renderPage();
+    return;
+  }
+
+  // 3b. Guardar resultado del partido del usuario y actualizar tabla (gestionado en _procesarPostJornada)
   G.historial.push({semana:G.semana,...res,liga:liga.div,jornada:jornadaIdx+1,_tablaActualizada:true});
 
   // 4. Lógica post-jornada unificada (tabla, resto de ligas, noticias, mercado, análisis…)
-  G._partidoVisual=null;
   _procesarPostJornada(res, np, liga, jornadaIdx, eq);
 }
 
@@ -7851,14 +8137,16 @@ function generarJugadorOjeado(pos, edadMin, edadMax, div){
     liderazgo:  edad>28 ? clamp(rand(base,base+20),1,99) : clamp(rand(10,base),1,99),
     experiencia:clamp(edad*2+rand(-5,5),1,99)
   };
-  const media = Math.round(Object.values(s).reduce((a,b)=>a+b,0)/9);
+  const mediaRaw = Math.round(Object.values(s).reduce((a,b)=>a+b,0)/9);
+  const media = Math.max(50, mediaRaw); // El ojeador nunca encuentra jugadores por debajo de media 50
+  const potencial = Math.max(60, Math.max(media, pot)); // Potencial mínimo 60
   const valor = clamp(Math.round((media/100)**2.5*(edad<25?1.2:edad>32?0.7:1)*rand(400,1800)),5,4000);
   return {
     id: Date.now() + rand(1000,9999),
     equipoId: null,
     nombre: nombreAleatorio(),
     edad, pos: posReal, stats: s, media,
-    potencial: Math.max(media, pot), valor,
+    potencial, valor,
     salario: Math.max(1, Math.round(valor/40)),
     forma: rand(55,90), lesionado: false, diasLesion: 0,
     amonestaciones: 0, expulsado: false,
@@ -8294,11 +8582,14 @@ function cerrarModal(){
   mc.innerHTML='';
   // Limpiar completamente el estado del partido visual:
   // - clearTimeout detiene el tick pendiente
-  // - _pvState=null impide que pvTick/pvFinalizar sigan ejecutando
-  //   si por alguna razón el setTimeout ya había entrado en la cola
-  //   (pvTick comprueba !_pvState como primera instrucción)
+  // - Restaurar titulares originales si el partido se cierra sin confirmar resultado
+  //   (pvConfirmarResultado hace su propia restauración; esta cubre el cierre prematuro)
   if(typeof _pvState !== 'undefined' && _pvState){
     if(_pvState.timer){ clearTimeout(_pvState.timer); _pvState.timer = null; }
+    // Restaurar titulares al estado pre-partido si no se confirmó el resultado
+    if(_pvState.titularesBackup && _pvState.eq){
+      _pvState.eq.titulares = [..._pvState.titularesBackup];
+    }
     _pvState = null;
   }
   if(typeof G !== 'undefined' && G && G._partidoVisual){ G._partidoVisual = null; }
