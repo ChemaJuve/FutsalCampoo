@@ -833,7 +833,7 @@
           "id": 2,
           "nombre": "Diego Alejandro Pérez",
           "edad": 20,
-          "pos": "POR",
+          "pos": "CIE",
           "stats": {
             "porteria": 88,
             "defensa": 74,
@@ -2021,7 +2021,7 @@
         },
         {
           "id": 501,
-          "nombre": "Roberto Ibáñez",
+          "nombre": "Brian Dosantos",
           "edad": 28,
           "pos": "POR",
           "stats": {
@@ -2141,7 +2141,7 @@
         },
         {
           "id": 507,
-          "nombre": "Ignacio Álvarez",
+          "nombre": "Deyan Erazo",
           "edad": 28,
           "pos": "ALA",
           "stats": {
@@ -2161,7 +2161,7 @@
         },
         {
           "id": 508,
-          "nombre": "César Fuentes",
+          "nombre": "Adrián Trias",
           "edad": 32,
           "pos": "ALA",
           "stats": {
@@ -2181,7 +2181,7 @@
         },
         {
           "id": 509,
-          "nombre": "Ángel Medina",
+          "nombre": "Bryan Casierra",
           "edad": 28,
           "pos": "ALA",
           "stats": {
@@ -2201,7 +2201,7 @@
         },
         {
           "id": 510,
-          "nombre": "Manuel Fuentes",
+          "nombre": "Cristian Rey",
           "edad": 29,
           "pos": "CIE",
           "stats": {
@@ -2221,7 +2221,7 @@
         },
         {
           "id": 511,
-          "nombre": "Víctor Hidalgo",
+          "nombre": "Pipiolo Vanegas",
           "edad": 18,
           "pos": "ALA",
           "stats": {
@@ -2243,7 +2243,7 @@
       "6": [
         {
           "id": 600,
-          "nombre": "Lorenzo Suárez",
+          "nombre": "David García",
           "edad": 35,
           "pos": "POR",
           "stats": {
@@ -2263,7 +2263,7 @@
         },
         {
           "id": 601,
-          "nombre": "Hugo Delgado",
+          "nombre": "Mario Fernández",
           "edad": 22,
           "pos": "POR",
           "stats": {
@@ -2323,9 +2323,9 @@
         },
         {
           "id": 604,
-          "nombre": "Nicolás Moreno",
+          "nombre": "Alfonso Cuesta",
           "edad": 21,
-          "pos": "POR",
+          "pos": "ALA",
           "stats": {
             "porteria": 88,
             "defensa": 81,
@@ -2343,7 +2343,7 @@
         },
         {
           "id": 605,
-          "nombre": "Noel Peña",
+          "nombre": "Jaime Ruíz",
           "edad": 25,
           "pos": "PIV",
           "stats": {
@@ -2363,9 +2363,9 @@
         },
         {
           "id": 606,
-          "nombre": "César Vega",
+          "nombre": "Samuel Monedero",
           "edad": 32,
-          "pos": "CIE",
+          "pos": "ALA",
           "stats": {
             "porteria": 23,
             "defensa": 90,
@@ -2383,7 +2383,7 @@
         },
         {
           "id": 607,
-          "nombre": "Sergio Prieto",
+          "nombre": "Luis Mateos",
           "edad": 24,
           "pos": "PIV",
           "stats": {
@@ -2403,7 +2403,7 @@
         },
         {
           "id": 608,
-          "nombre": "Ismael Navarro",
+          "nombre": "Javier Fernández",
           "edad": 21,
           "pos": "PIV",
           "stats": {
@@ -2423,7 +2423,7 @@
         },
         {
           "id": 609,
-          "nombre": "Alejandro Vega",
+          "nombre": "Miguel Gómez",
           "edad": 29,
           "pos": "CIE",
           "stats": {
@@ -2443,7 +2443,7 @@
         },
         {
           "id": 610,
-          "nombre": "Martín Molina",
+          "nombre": "Gonzalo Ruiz",
           "edad": 30,
           "pos": "CIE",
           "stats": {
@@ -2463,9 +2463,9 @@
         },
         {
           "id": 611,
-          "nombre": "Alberto Gil",
+          "nombre": "Miguel Blanco",
           "edad": 30,
-          "pos": "POR",
+          "pos": "CIE",
           "stats": {
             "porteria": 93,
             "defensa": 79,
@@ -2727,7 +2727,7 @@
       "8": [
         {
           "id": 800,
-          "nombre": "Adri Pana",
+          "nombre": "Adrián García",
           "edad": 36,
           "pos": "ALA",
           "stats": {
@@ -2747,7 +2747,7 @@
         },
         {
           "id": 801,
-          "nombre": "Aaron Pana",
+          "nombre": "Aaron García",
           "edad": 23,
           "pos": "POR",
           "stats": {
@@ -2767,7 +2767,7 @@
         },
         {
           "id": 802,
-          "nombre": "Mario Perti",
+          "nombre": "Mario Argueso",
           "edad": 18,
           "pos": "ALA",
           "stats": {
@@ -2907,7 +2907,7 @@
         },
         {
           "id": 809,
-          "nombre": "Martín Álvarez",
+          "nombre": "Raul Bolmir",
           "edad": 32,
           "pos": "PIV",
           "stats": {
@@ -2927,7 +2927,7 @@
         },
         {
           "id": 810,
-          "nombre": "Xabier Molina",
+          "nombre": "Marcos Gutierrez",
           "edad": 33,
           "pos": "ALA",
           "stats": {
@@ -2947,7 +2947,7 @@
         },
         {
           "id": 811,
-          "nombre": "Alberto Molina",
+          "nombre": "Eduardo La Lacera",
           "edad": 26,
           "pos": "CIE",
           "stats": {
@@ -2969,7 +2969,7 @@
       "9": [
         {
           "id": 900,
-          "nombre": "Kevin Herrera",
+          "nombre": "Juan José Roba",
           "edad": 33,
           "pos": "POR",
           "stats": {
@@ -3089,7 +3089,7 @@
         },
         {
           "id": 906,
-          "nombre": "Isaac Montiel",
+          "nombre": "Pedro Casares",
           "edad": 28,
           "pos": "ALA",
           "stats": {
@@ -3169,7 +3169,7 @@
         },
         {
           "id": 910,
-          "nombre": "Hugo Rodríguez",
+          "nombre": "Pablo López",
           "edad": 30,
           "pos": "CIE",
           "stats": {
@@ -6155,7 +6155,7 @@
         },
         {
           "id": 2202,
-          "nombre": "Roberto Vega",
+          "nombre": "Isaac Montiel",
           "edad": 24,
           "pos": "ALA",
           "stats": {
@@ -6175,7 +6175,7 @@
         },
         {
           "id": 2203,
-          "nombre": "Alejandro Gil",
+          "nombre": "Alfonso Antuñano",
           "edad": 24,
           "pos": "ALA",
           "stats": {
@@ -6195,7 +6195,7 @@
         },
         {
           "id": 2204,
-          "nombre": "Luis Calvo",
+          "nombre": "Jorge Rubio",
           "edad": 30,
           "pos": "PIV",
           "stats": {
@@ -6257,7 +6257,7 @@
           "id": 2207,
           "nombre": "Ernesto Delgado",
           "edad": 34,
-          "pos": "POR",
+          "pos": "ALA",
           "stats": {
             "porteria": 93,
             "defensa": 62,
@@ -6295,7 +6295,7 @@
         },
         {
           "id": 2209,
-          "nombre": "Hugo Nieto",
+          "nombre": "Alberto Cossio",
           "edad": 26,
           "pos": "CIE",
           "stats": {
