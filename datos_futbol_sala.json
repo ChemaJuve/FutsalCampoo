@@ -286,7 +286,7 @@
       "nombre": "Incontrolables",
       "div": 2,
       "emoji": "🌪️",
-      "ciudad": "Cabezón de la Sal",
+      "ciudad": "Reinosa",
       "fundacion": 1998,
       "presupuesto_inicial": 621,
       "instalaciones": {
@@ -300,7 +300,7 @@
       "nombre": "Tourtazo",
       "div": 2,
       "emoji": "🦊",
-      "ciudad": "Castro Urdiales",
+      "ciudad": "Reinosa",
       "fundacion": 1977,
       "presupuesto_inicial": 534,
       "instalaciones": {
@@ -314,7 +314,7 @@
       "nombre": "FC Fontibre",
       "div": 2,
       "emoji": "🐯",
-      "ciudad": "Castro Urdiales",
+      "ciudad": "Fontibre",
       "fundacion": 2009,
       "presupuesto_inicial": 406,
       "instalaciones": {
@@ -328,7 +328,7 @@
       "nombre": "Superbebientes",
       "div": 2,
       "emoji": "🦂",
-      "ciudad": "Santander",
+      "ciudad": "Reinosa",
       "fundacion": 1990,
       "presupuesto_inicial": 546,
       "instalaciones": {
@@ -342,7 +342,7 @@
       "nombre": "Valdeolea FC",
       "div": 2,
       "emoji": "🌙",
-      "ciudad": "Laredo",
+      "ciudad": "Olea",
       "fundacion": 1988,
       "presupuesto_inicial": 428,
       "instalaciones": {
@@ -356,7 +356,7 @@
       "nombre": "Nestares no te pares",
       "div": 2,
       "emoji": "☀️",
-      "ciudad": "Torrelavega",
+      "ciudad": "Nestares",
       "fundacion": 2007,
       "presupuesto_inicial": 525,
       "instalaciones": {
@@ -367,10 +367,10 @@
     },
     {
       "id": 22,
-      "nombre": "Los Hinojos",
+      "nombre": "Jarra y Pedal",
       "div": 2,
       "emoji": "⭐",
-      "ciudad": "Torrelavega",
+      "ciudad": "Reinosa",
       "fundacion": 1985,
       "presupuesto_inicial": 662,
       "instalaciones": {
@@ -398,7 +398,7 @@
       "nombre": "Pesquera United",
       "div": 2,
       "emoji": "🔮",
-      "ciudad": "Cabezón de la Sal",
+      "ciudad": "Pesquera",
       "fundacion": 2003,
       "presupuesto_inicial": 652,
       "instalaciones": {
@@ -479,10 +479,10 @@
     },
     {
       "id": 30,
-      "nombre": "Barrio Cieza",
+      "nombre": "Aguayo Team",
       "div": 2,
       "emoji": "🪶",
-      "ciudad": "Salces",
+      "ciudad": "Aguayo",
       "fundacion": 1973,
       "presupuesto_inicial": 758,
       "instalaciones": {
@@ -537,7 +537,7 @@
       "id": 34,
       "nombre": "Familia Hernández",
       "div": 3,
-      "emoji": "🐷",
+      "emoji": "👦",
       "ciudad": "Reinosa",
       "fundacion": 1975,
       "presupuesto_inicial": 220,
@@ -551,7 +551,7 @@
       "id": 35,
       "nombre": "Suso's Boys",
       "div": 3,
-      "emoji": "👦",
+      "emoji": "🐷",
       "ciudad": "Campoo de Suso",
       "fundacion": 1986,
       "presupuesto_inicial": 220,
@@ -664,7 +664,7 @@
       "nombre": "Poderosos Aradillos",
       "div": 3,
       "emoji": "✨",
-      "ciudad": "Horna de Ebro",
+      "ciudad": "Aradillos",
       "fundacion": 2006,
       "presupuesto_inicial": 220,
       "instalaciones": {
@@ -706,7 +706,7 @@
       "nombre": "Amigos de Aguilar",
       "div": 3,
       "emoji": "🌊",
-      "ciudad": "Santander",
+      "ciudad": "Aguilar de Campoo",
       "fundacion": 1978,
       "presupuesto_inicial": 220,
       "instalaciones": {
@@ -776,7 +776,7 @@
       "nombre": "Cervatos Stars",
       "div": 3,
       "emoji": "⚡",
-      "ciudad": "Soto",
+      "ciudad": "Cervatos",
       "fundacion": 1988,
       "presupuesto_inicial": 220,
       "instalaciones": {
@@ -1537,7 +1537,7 @@
         },
         {
           "id": 301,
-          "nombre": "Jorge Corujo",
+          "nombre": "Gonzalo Diez",
           "edad": 27,
           "pos": "POR",
           "stats": {
@@ -1697,7 +1697,7 @@
         },
         {
           "id": 309,
-          "nombre": "Gonzalo Diez",
+          "nombre": "Jorge Corujo",
           "edad": 28,
           "pos": "POR",
           "stats": {
@@ -13720,19 +13720,19 @@
         "edad": 21,
         "pos": "ALA",
         "stats": {
-          "porteria": 23,
-          "defensa": 42,
-          "pase": 51,
-          "regate": 60,
-          "tiro": 19,
-          "fisico": 34,
-          "velocidad": 30,
-          "liderazgo": 24,
-          "experiencia": 65
+          "porteria": 28,
+          "defensa": 47,
+          "pase": 56,
+          "regate": 66,
+          "tiro": 24,
+          "fisico": 39,
+          "velocidad": 35,
+          "liderazgo": 29,
+          "experiencia": 70
         },
-        "potencial": 51,
+        "potencial": 71,
         "valor": 13,
-        "salario": 3
+        "salario": 2
       },
       {
         "id": 9018,
