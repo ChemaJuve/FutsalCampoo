@@ -538,7 +538,7 @@ nav{flex:1;overflow-y:auto;padding:8px 0;}
     onload="this.style.display='block';document.getElementById('splash-screen').classList.add('has-logo-img')"
     onerror="this.style.display='none'">
   <div class="splash-logo" id="splash-logo-text">Fútbol Sala Campoo</div>
-  <div class="splash-badge" id="splash-version-badge">v1.70</div>
+  <div class="splash-badge" id="splash-version-badge">v1.71</div>
   <div class="splash-btns">
     <button class="splash-btn splash-btn-primary" onclick="splashNuevaPartida()">⚽ Nueva partida</button>
     <label class="splash-btn splash-btn-secondary" style="cursor:pointer;text-align:center">
@@ -1415,6 +1415,7 @@ function inicializarJuego(equipoId){
     currentPage:'inicio',
     equipoTab:0, clasifDiv:div, mercadoTab:0,
     estadTab: 0,        // <--- AÑADE ESTA LÍNEA
+    estadDiv: div,      // división activa en estadísticas (por defecto la del usuario)
     histSelTemp: null,  // <--- AÑADE ESTA LÍNEA
     evolucion: [],      // historial semanal para gráficos
     objetivo:generarObjetivo(div),
@@ -1753,6 +1754,7 @@ function simularPartido(eqLId, eqVId, esCopa=false, soloSimular=false){
   if(!soloSimular){
     [...local.jugadores,...vis.jugadores].forEach(j=>{
       j._noJugoUltimoPartido = !idsJugaron.has(j.id);
+      j._jugadoUltimoPartido = idsJugaron.has(j.id);
     });
   }
   if(!soloSimular) todosJugs.forEach(j => {
@@ -2213,11 +2215,14 @@ function avanzarSemana(){
     // Jugadores que no jugaron el último partido recuperan más
     const fat = j.fatiga||0;
     const noJugo = (j.pjugados===undefined || j._noJugoUltimoPartido);
+    const jugoPorPrimVez = j._jugadoUltimoPartido;
     const recupBase = j.lesionado ? rand(18,25)
+      : jugoPorPrimVez ? rand(3,7)
       : fat >= 75 ? rand(20,28)
       : noJugo    ? rand(18,24)
       : rand(15,22);
     j.fatiga = clamp(fat - recupBase, 0, 100);
+    j._jugadoUltimoPartido = false;
   };
   G.equipos.forEach(eq => eq.jugadores.forEach(recuperarFatiga));
   G.jugadoresLibres.forEach(recuperarFatiga);
@@ -3432,7 +3437,7 @@ function navTo(page,el){
   const tabResets = {
     equipo:      ()=>{ G.equipoTab=0; },
     mercado:     ()=>{ G.mercadoTab=0; },
-    estadisticas:()=>{ G.estadTab=0; },
+    estadisticas:()=>{ G.estadTab=0; G.estadDiv=miEquipo()?.div??1; },
   };
   if(tabResets[page]) tabResets[page]();
   G.currentPage=page;
@@ -4579,7 +4584,7 @@ function renderPlantilla(eq){
       ${th('asistencias','🎯','Asistencias esta temporada')}
       ${th('pjugados','PJ','Partidos jugados')}
       ${th('minutosTotal',"Min'","Minutos jugados esta temporada")}
-      <th>Estado</th><th>Situación</th><th></th>
+      <th>Estado</th><th>Situación</th>
     </tr></thead>
     <tbody>
     ${sorted.map(j=>{
@@ -4592,7 +4597,7 @@ function renderPlantilla(eq){
           ? `<span class="text-muted text-xs">🔬 ${j.analizando}sem</span>`
           : `<span class="text-muted text-xs" style="cursor:pointer" onclick="iniciarAnalisis(${j.id})" title="Analizar potencial (1-3 semanas · ${anActivos}/12 activos)">🔍 ?${anActivos>=12?' ⛔':''}</span>`);
       return `<tr>
-      <td class="fw-600">${j.nombre}</td>
+      <td class="fw-600" style="cursor:pointer;white-space:nowrap" onclick="abrirJugador(${j.id})" title="Ver ficha del jugador"><span style="color:var(--acento);text-decoration:underline dotted">${j.nombre}</span></td>
       <td><span class="pos pos-${j.pos}">${j.pos}</span></td>
       <td>${j.edad}</td>
       <td class="text-acento fw-bold">${j.media}</td>
@@ -4606,7 +4611,6 @@ function renderPlantilla(eq){
       <td class="text-acento text-xs">${j.minutosTotal||0}'</td>
       <td>${j.lesionado?'<span class="stat-pill rojo">🚑</span>':j.expulsado?'<span class="stat-pill rojo">🟥</span>':j.insatisfecho?'<span class="stat-pill naranja" title="Descontento por falta de minutos">😤</span>':'<span class="stat-pill verde">OK</span>'}</td>
       <td>${getTransferBadge(j)||'<span class="text-muted text-xs">—</span>'}</td>
-      <td><button class="btn btn-sm btn-secondary" onclick="abrirJugador(${j.id})">Ver</button></td>
     </tr>`;}).join('')}
     </tbody>
   </table></div></div>`;
@@ -5023,11 +5027,16 @@ function _aplicarRecuperacionSemanal(eqJugador){
     if(j._inmuneLesion && j._inmuneLesion>0) j._inmuneLesion--;
     const fat = j.fatiga||0;
     const noJugo = j._noJugoUltimoPartido;
+    const jugoPorPrimVez = j._jugadoUltimoPartido; // acaba de jugar partido visual
+    // Quien acaba de jugar recupera menos para que la fatiga acumulada sea visible
     const recupBase = j.lesionado ? rand(18,25)
+      : jugoPorPrimVez ? rand(3,7)   // jugó: recupera poco (fatiga queda ~15-25 pts tras partido)
       : fat >= 75 ? rand(20,28)
       : noJugo    ? rand(18,24)
       : rand(15,22);
     j.fatiga = clamp(fat - recupBase, 0, 100);
+    // Limpiar flag para siguientes semanas
+    j._jugadoUltimoPartido = false;
   };
   G.equipos.forEach(e => e.jugadores.forEach(_recuperar));
   G.jugadoresLibres.forEach(_recuperar);
@@ -6191,6 +6200,12 @@ function aplicarResultadoVisual(){
   ) : [];
   const todosJugs = [...jugadoresLocal, ...jugadoresVis];
 
+  // Marcar _noJugoUltimoPartido para TODOS los jugadores de ambos equipos
+  // (igual que hace simularPartido para las IA). Los que están en todosJugs sí jugaron.
+  const idsJugaronVisual = new Set(todosJugs.map(j=>j.id));
+  if(local) local.jugadores.forEach(j=>{ j._noJugoUltimoPartido = !idsJugaronVisual.has(j.id); j._jugadoUltimoPartido = idsJugaronVisual.has(j.id); });
+  if(vis)   vis.jugadores.forEach(j=>{   j._noJugoUltimoPartido = !idsJugaronVisual.has(j.id); j._jugadoUltimoPartido = idsJugaronVisual.has(j.id); });
+
   todosJugs.forEach(j => {
     // Contar goles: usar scorerId si está disponible (más fiable), sino nombre+equipo
     const equipoJ = j.equipoId;
@@ -6892,16 +6907,25 @@ function renderTablasCopa(){
 function renderEstadisticas(){
   const tabActiva = G.estadTab||0;
   const tabs = ['⚽ Goleadores','🧤 Zamora','🎯 Asistencias','📊 Evolución','🏅 Jornada','📜 Histórico'];
+  // Selector de división para las tabs de clasificaciones individuales
+  const divActiva = G.estadDiv ?? miEquipo()?.div ?? 1;
+  const divTabs = [1,2,3];
+  const divNombres = {1:'1ª División',2:'2ª División',3:'3ª División'};
+  const showDivSelector = tabActiva <= 2; // solo en Goleadores, Zamora, Asistencias
   return `<div class="animate-in">
   <div class="tabs">${tabs.map((t,i)=>`<div class="tab ${tabActiva===i?'active':''}" onclick="G.estadTab=${i};renderPage()">${t}</div>`).join('')}</div>
+  ${showDivSelector ? `<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">${divTabs.map(d=>`<button class="btn btn-sm ${divActiva===d?'btn-primary':'btn-secondary'}" onclick="G.estadDiv=${d};renderPage()">🏆 ${divNombres[d]}</button>`).join('')}</div>` : ''}
   ${[renderEstadGoleadores,renderEstadZamora,renderEstadAsistencias,renderEstadEvolucion,renderEstadJornada,renderEstadHistorico][tabActiva]()}
   </div>`;
 }
 
 function renderEstadGoleadores(){
-  const pich=pichichis().slice(0,12);
+  const divActiva = G.estadDiv ?? miEquipo()?.div ?? 1;
+  const eqsDiv = new Set(G.equipos.filter(e=>e.div===divActiva).map(e=>e.id));
+  const pich = pichichis().filter(j=>eqsDiv.has(j.equipoId)).slice(0,12);
+  const divNombres={1:'1ª División',2:'2ª División',3:'3ª División'};
   return `<div class="card">
-    <div class="card-header"><div class="card-title">⚽ Pichichi — T${G.temporada}</div></div>
+    <div class="card-header"><div class="card-title">⚽ Pichichi — ${divNombres[divActiva]} · T${G.temporada}</div></div>
     <table class="tabla"><thead><tr><th>#</th><th>Jugador</th><th>Equipo</th><th>⚽</th><th>🎯 Ast.</th><th>PJ</th></tr></thead>
     <tbody>
     ${pich.map((j,i)=>{const eq=G.equipos.find(e=>e.id===j.equipoId);return `<tr ${j.equipoId===G.equipoId?'class="my-team"':''}><td>${i===0?'👑':i+1}</td><td class="fw-600">${j.nombre}</td><td class="text-muted text-xs">${eq?.nombre||'?'}</td><td class="fw-bold text-oro">${j.goles}</td><td class="text-verde">${j.asistencias}</td><td>${j.pjugados}</td></tr>`}).join('')||'<tr><td colspan="6" class="text-muted text-center">Sin goles</td></tr>'}
@@ -6910,9 +6934,12 @@ function renderEstadGoleadores(){
 }
 
 function renderEstadZamora(){
-  const zam=zamoras().slice(0,10);
+  const divActiva = G.estadDiv ?? miEquipo()?.div ?? 1;
+  const eqsDiv = new Set(G.equipos.filter(e=>e.div===divActiva).map(e=>e.id));
+  const zam=zamoras().filter(j=>eqsDiv.has(j.equipoId)).slice(0,10);
+  const divNombres={1:'1ª División',2:'2ª División',3:'3ª División'};
   return `<div class="card">
-    <div class="card-header"><div class="card-title">🧤 Trofeo Zamora — T${G.temporada}</div></div>
+    <div class="card-header"><div class="card-title">🧤 Trofeo Zamora — ${divNombres[divActiva]} · T${G.temporada}</div></div>
     <table class="tabla"><thead><tr><th>#</th><th>Portero</th><th>Equipo</th><th>GC/PJ</th><th>PJ</th></tr></thead>
     <tbody>
     ${zam.map((j,i)=>{const eq=G.equipos.find(e=>e.id===j.equipoId);return `<tr ${j.equipoId===G.equipoId?'class="my-team"':''}><td>${i===0?'🧤':i+1}</td><td class="fw-600">${j.nombre}</td><td class="text-muted text-xs">${eq?.nombre||'?'}</td><td class="fw-bold text-azul">${j.gcPromedio}</td><td>${j.pjugados}</td></tr>`}).join('')||'<tr><td colspan="5" class="text-muted text-center">Sin datos</td></tr>'}
@@ -6921,9 +6948,12 @@ function renderEstadZamora(){
 }
 
 function renderEstadAsistencias(){
-  const asist=[...G.equipos.flatMap(e=>e.jugadores)].sort((a,b)=>b.asistencias-a.asistencias).slice(0,12);
+  const divActiva = G.estadDiv ?? miEquipo()?.div ?? 1;
+  const eqsDiv = new Set(G.equipos.filter(e=>e.div===divActiva).map(e=>e.id));
+  const divNombres={1:'1ª División',2:'2ª División',3:'3ª División'};
+  const asist=[...G.equipos.flatMap(e=>e.jugadores)].filter(j=>eqsDiv.has(j.equipoId)).sort((a,b)=>b.asistencias-a.asistencias).slice(0,12);
   return `<div class="card">
-    <div class="card-header"><div class="card-title">🎯 Asistencias — T${G.temporada}</div></div>
+    <div class="card-header"><div class="card-title">🎯 Asistencias — ${divNombres[divActiva]} · T${G.temporada}</div></div>
     <table class="tabla"><thead><tr><th>#</th><th>Jugador</th><th>Equipo</th><th>🎯</th><th>⚽</th></tr></thead>
     <tbody>
     ${asist.map((j,i)=>{const eq=G.equipos.find(e=>e.id===j.equipoId);return `<tr ${j.equipoId===G.equipoId?'class="my-team"':''}><td>${i+1}</td><td class="fw-600">${j.nombre}</td><td class="text-muted text-xs">${eq?.nombre||'?'}</td><td class="fw-bold text-verde">${j.asistencias}</td><td class="text-oro">${j.goles}</td></tr>`}).join('')||'<tr><td colspan="5" class="text-muted text-center">Sin datos</td></tr>'}
