@@ -538,7 +538,7 @@ nav{flex:1;overflow-y:auto;padding:8px 0;}
     onload="this.style.display='block';document.getElementById('splash-screen').classList.add('has-logo-img')"
     onerror="this.style.display='none'">
   <div class="splash-logo" id="splash-logo-text">Fútbol Sala Campoo</div>
-  <div class="splash-badge" id="splash-version-badge">v1.69</div>
+  <div class="splash-badge" id="splash-version-badge">v1.70</div>
   <div class="splash-btns">
     <button class="splash-btn splash-btn-primary" onclick="splashNuevaPartida()">⚽ Nueva partida</button>
     <label class="splash-btn splash-btn-secondary" style="cursor:pointer;text-align:center">
@@ -1409,6 +1409,7 @@ function inicializarJuego(equipoId){
     entrenamiento:'fisico',
     entrenamientoUsado:false,
     entrenamientoBonus:false,
+    entrenamientoFatigaAplicada:false,
     tactica:'1-2-1',
     darkMode:true,
     currentPage:'inicio',
@@ -2108,8 +2109,10 @@ function avanzarSemana(){
   const _entrenamientoUsadoEstaSemana = G.entrenamientoUsado; // Guardar ANTES de resetear
   const _entrenamientoPrevio = G.entrenamiento || 'fisico';
   const _entrenamientoBonusPrevio = G.entrenamientoBonus;
+  const _entrenamientoFatigaYaAplicada = G.entrenamientoFatigaAplicada || false;
   G.entrenamientoUsado=false; // Reset semanal del entrenamiento
   G.entrenamientoBonus=false; // Reset bonus de minijuego
+  G.entrenamientoFatigaAplicada=false; // Reset flag de fatiga ya aplicada
   G._partidoRecienJugado=false; // Reset — ya se puede simular el siguiente
   G._forzarPartidoVisual=null; // Limpiar partido forzado al avanzar semana
   // Calendario: T1=Ago(8). Liga empieza Sep(9), termina May(5). Jun(6)=fin temporada.
@@ -2402,6 +2405,7 @@ function avanzarSemana(){
     const foco=_entrenamientoPrevio;
     // Fatiga por entrenamiento (reducida): físico +8, técnico +6, táctico +4, descanso -20 extra
     // IMPORTANTE: solo aplicar si el entrenamiento fue usado esta semana
+    // Y solo si la fatiga NO fue ya aplicada inmediatamente al hacer clic en setEntrenamiento
     const fatigaEntren = foco==='fisico'?8 : foco==='tecnico'?6 : foco==='tactico'?4 : 0;
     eqJ.jugadores.forEach(j=>{
       if(!_entrenamientoUsadoEstaSemana){
@@ -2409,20 +2413,23 @@ function avanzarSemana(){
         j.fatiga = clamp((j.fatiga||0) - 5, 0, 100);
         return;
       }
-      if(foco==='descanso'){
-        // Descanso: recuperación extra de -20 (encima de la recuperación base semanal)
-        j.fatiga = clamp((j.fatiga||0) - 20, 0, 100);
-      } else {
-        if(j.fatiga >= 85){
-          // Fatiga>=85: no puede entrenar, pequeña recuperación extra
-          j.fatiga = clamp((j.fatiga||0) - 5, 0, 100);
-          return;
+      // Si la fatiga ya fue aplicada al hacer clic, solo aplicar mejoras de stats (no fatiga)
+      if(!_entrenamientoFatigaYaAplicada){
+        if(foco==='descanso'){
+          j.fatiga = clamp((j.fatiga||0) - 20, 0, 100);
+        } else {
+          if(j.fatiga >= 85){
+            j.fatiga = clamp((j.fatiga||0) - 5, 0, 100);
+            return;
+          }
+          j.fatiga = clamp((j.fatiga||0) + fatigaEntren, 0, 100);
         }
-        j.fatiga = clamp((j.fatiga||0) + fatigaEntren, 0, 100);
+      }
+      // Mejoras de stats (siempre se aplican al avanzar semana, independiente de cuándo se aplicó la fatiga)
+      if(foco!=='descanso' && (j.fatiga||0) < 85){
         if(foco==='fisico'){j.stats.fisico=clamp(j.stats.fisico+rand(0,1),1,99);j.stats.velocidad=clamp(j.stats.velocidad+rand(0,1),1,99);}
         if(foco==='tactico'){j.stats.pase=clamp(j.stats.pase+rand(0,1),1,99);j.stats.defensa=clamp(j.stats.defensa+rand(0,1),1,99);}
         if(foco==='tecnico'){j.stats.regate=clamp(j.stats.regate+rand(0,1),1,99);j.stats.tiro=clamp(j.stats.tiro+rand(0,1),1,99);}
-        // Bonus por minijuego superado
         if(_entrenamientoBonusPrevio){
           if(foco==='fisico'){j.stats.fisico=clamp(j.stats.fisico+1,1,99);j.stats.velocidad=clamp(j.stats.velocidad+1,1,99);}
           if(foco==='tactico'){j.stats.pase=clamp(j.stats.pase+1,1,99);j.stats.defensa=clamp(j.stats.defensa+1,1,99);}
@@ -2737,6 +2744,15 @@ function aceptarOfertaEntrante(idx){
   const comprador=G.equipos.find(e=>e.id===oferta.equipoId);
   if(!comprador){ mostrarToast('Equipo comprador no encontrado','error'); return; }
 
+  // Bloquear si ya hay una operación pendiente para este jugador
+  const yaComprometido =
+    (G.traspasosPendientes||[]).some(tp=>tp.jugadorId===j.id) ||
+    (G.cesionesPendientes||[]).some(cp=>cp.jugadorId===j.id);
+  if(yaComprometido){
+    mostrarToast(`⚠️ ${j.nombre} ya tiene una operación pendiente. Cancélala antes de aceptar otra.`,'warning');
+    return;
+  }
+
   if(oferta.tipo==='traspaso'){
     if(!G.mercadoAbierto){
       // Mercado cerrado: encolar el traspaso para ejecutarlo cuando abra el mercado
@@ -2804,6 +2820,16 @@ function mostrarModalOfertas(){
     mostrarToast('No hay ofertas pendientes','');
     return;
   }
+
+  // Detectar jugadores que ya tienen una operación pendiente (traspaso o cesión aceptada)
+  const jugadoresYaOperados = new Set([
+    ...(G.traspasosPendientes||[]).map(tp=>tp.jugadorId),
+    ...(G.cesionesPendientes||[]).map(cp=>cp.jugadorId),
+  ]);
+  // También detectar si entre las propias ofertas activas ya se aceptó una para el mismo jugador
+  // (se resuelve marcando las secundarias como bloqueadas)
+  const jugadoresConOfertaActiva = new Set();
+
   let html='<div>';
   if(pendientes.length){
     html+=`<div style="background:rgba(255,214,10,.08);border:1px solid rgba(255,214,10,.3);border-radius:10px;padding:12px 14px;margin-bottom:12px">
@@ -2834,20 +2860,33 @@ function mostrarModalOfertas(){
     </div>`;
   }
   if(ofertas.length){
-    html+=ofertas.map((o,i)=>`
-    <div style="background:var(--bg3);border-radius:10px;padding:12px 14px;margin-bottom:10px;border:1px solid var(--borde)">
+    html+=ofertas.map((o,i)=>{
+      // Un jugador está bloqueado si ya tiene operación pendiente O si una oferta anterior en esta lista ya lo "ocupa"
+      const bloqueado = jugadoresYaOperados.has(o.jugadorId) || jugadoresConOfertaActiva.has(o.jugadorId);
+      // Registrar este jugador como ocupado para las ofertas siguientes
+      jugadoresConOfertaActiva.add(o.jugadorId);
+      const eq_div = G.equipos.find(e=>e.id===o.equipoId)?.div;
+      return `
+    <div style="background:${bloqueado?'rgba(100,100,100,.08)':'var(--bg3)'};border-radius:10px;padding:12px 14px;margin-bottom:10px;border:1px solid ${bloqueado?'rgba(100,100,100,.3)':'var(--borde)'};${bloqueado?'opacity:.75':''}">
       <div class="flex" style="align-items:center;justify-content:space-between;margin-bottom:8px">
         <div>
-          <div class="fw-bold">${o.tipo==='traspaso'?'💸':'🔄'} ${o.jugadorNombre}</div>
-          <div class="text-xs text-muted">${o.equipoNombre}${(()=>{const div=G.equipos.find(e=>e.id===o.equipoId)?.div;return div?` (${div}ª Div.)`:'';})()} · ${o.tipo==='traspaso'?o.cantidad+'€':o.cantidad+'€/sem'}</div>
+          <div class="fw-bold" style="${bloqueado?'color:var(--texto2)':''}">${o.tipo==='traspaso'?'💸':'🔄'} ${o.jugadorNombre}</div>
+          <div class="text-xs text-muted">${o.equipoNombre}${eq_div?` (${eq_div}ª Div.)`:''} · ${o.tipo==='traspaso'?o.cantidad+'€':o.cantidad+'€/sem'}</div>
         </div>
         <div class="flex gap-2">
-          <button class="btn btn-sm btn-primary" onclick="aceptarOfertaEntrante(${i})">${!G.mercadoAbierto ? '⏳ Aceptar (diferido)' : '✅ Aceptar'}</button>
+          ${bloqueado
+            ? `<span class="text-xs" style="color:var(--texto2);padding:5px 10px;background:var(--bg3);border-radius:6px;border:1px solid var(--borde)">🔒 Jugador ya comprometido</span>`
+            : `<button class="btn btn-sm btn-primary" onclick="aceptarOfertaEntrante(${i})">${!G.mercadoAbierto ? '⏳ Aceptar (diferido)' : '✅ Aceptar'}</button>`
+          }
           <button class="btn btn-sm btn-danger" onclick="rechazarOfertaEntrante(${i})">❌ Rechazar</button>
         </div>
       </div>
-      ${!G.mercadoAbierto ? `<div class="text-xs" style="color:var(--oro)">⚠️ Mercado cerrado — si aceptas, el jugador se irá al abrir la próxima ventana de mercado</div>` : ''}
-    </div>`).join('');
+      ${bloqueado
+        ? `<div class="text-xs" style="color:var(--naranja)">⚠️ Ya existe una operación pendiente para este jugador. Rechaza esta oferta o cancela la operación anterior.</div>`
+        : (!G.mercadoAbierto ? `<div class="text-xs" style="color:var(--oro)">⚠️ Mercado cerrado — si aceptas, el jugador se irá al abrir la próxima ventana de mercado</div>` : '')
+      }
+    </div>`;
+    }).join('');
   }
   html+='</div>';
   mostrarModal('📬 Ofertas recibidas', html);
@@ -3079,6 +3118,7 @@ function _aplicarMigraciones(obj){
   // Al cargar una partida siempre se puede entrenar esa semana — el bloqueo es solo en sesión activa.
   obj.entrenamientoUsado=false;
   if(obj.entrenamientoBonus===undefined) obj.entrenamientoBonus=false;
+  if(obj.entrenamientoFatigaAplicada===undefined) obj.entrenamientoFatigaAplicada=false;
   if(obj.playoff===undefined) obj.playoff=null;
   if(obj.playoffTerminado===undefined) obj.playoffTerminado=false;
   if(obj.calMes===undefined) obj.calMes=obj.mes||8;
@@ -3502,18 +3542,25 @@ function renderNoticias(){
     <div class="card-header">
       <div class="card-title">📬 Ofertas recibidas <span style="background:var(--rojo);color:#fff;border-radius:50%;padding:1px 7px;font-size:.72rem;margin-left:6px">${ofertas.length}</span></div>
     </div>
-    ${ofertas.map((o,i)=>`
-    <div style="background:var(--bg3);border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    ${ofertas.map((o,i)=>{
+      const bloq = (G.traspasosPendientes||[]).some(tp=>tp.jugadorId===o.jugadorId) ||
+                   (G.cesionesPendientes||[]).some(cp=>cp.jugadorId===o.jugadorId) ||
+                   ofertas.slice(0,i).some(prev=>prev.jugadorId===o.jugadorId);
+      return `
+    <div style="background:${bloq?'rgba(100,100,100,.08)':'var(--bg3)'};border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;${bloq?'opacity:.75':''}">
       <div>
         <div class="fw-bold">${o.tipo==='traspaso'?'💸 Oferta de traspaso':'🔄 Solicitud de cesión'}</div>
         <div class="text-sm text-muted">${o.equipoNombre}${(()=>{const div=G.equipos.find(e=>e.id===o.equipoId)?.div;return div?` <span style="opacity:.7">(${div}ª Div.)</span>`:'';})()} quiere a <b>${o.jugadorNombre}</b></div>
-        <div class="text-xs text-muted mt-1">${o.tipo==='traspaso'?o.cantidad+'€':o.cantidad+'€/sem'} · S${o.semana}</div>
+        <div class="text-xs text-muted mt-1">${o.tipo==='traspaso'?o.cantidad+'€':o.cantidad+'€/sem'} · S${o.semana}${bloq?` · <span style="color:var(--naranja)">🔒 Jugador ya comprometido</span>`:''}</div>
       </div>
       <div class="flex gap-2">
-        <button class="btn btn-sm btn-primary" onclick="aceptarOfertaEntrante(${i})">${!G.mercadoAbierto && o.tipo==='traspaso' ? '⏳ Aceptar (diferido)' : '✅ Aceptar'}</button>
+        ${bloq
+          ? `<span class="text-xs" style="padding:5px 10px;background:var(--bg3);border-radius:6px;border:1px solid var(--borde);color:var(--texto2)">🔒 No disponible</span>`
+          : `<button class="btn btn-sm btn-primary" onclick="aceptarOfertaEntrante(${i})">${!G.mercadoAbierto && o.tipo==='traspaso' ? '⏳ Aceptar (diferido)' : '✅ Aceptar'}</button>`
+        }
         <button class="btn btn-sm btn-danger" onclick="rechazarOfertaEntrante(${i})">❌ Rechazar</button>
       </div>
-    </div>`).join('')}
+    </div>`;}).join('')}
   </div>`:
   `<div class="card mb-3" style="opacity:.7"><div class="card-header"><div class="card-title">📬 Ofertas recibidas</div></div>
   <div class="text-muted text-sm text-center" style="padding:14px">No hay ofertas pendientes</div></div>`}
@@ -3691,17 +3738,20 @@ async function setEntrenamiento(foco){
   }
   G.entrenamiento=foco;
 
-  // Descanso: no hay minijuego
+  // Descanso: no hay minijuego — aplicar recuperación extra AHORA (feedback inmediato)
   if(foco==='descanso'){
     G.entrenamientoUsado=true;
     G.entrenamientoBonus=false;
+    G.entrenamientoFatigaAplicada=true; // marcar para no aplicar de nuevo en avanzarSemana
+    const eqJ=miEquipo();
+    if(eqJ) eqJ.jugadores.forEach(j=>{ j.fatiga=clamp((j.fatiga||0)-20,0,100); });
     guardarPartida();
     mostrarModal('😴 Descanso',`
 <div style="text-align:center;padding:10px">
   <div class="u-empty-icon-lg">😴</div>
   <div class="fw-bold" style="font-size:1.1rem">Semana de descanso</div>
   <div class="text-muted text-sm mt-2">Los jugadores descansan. Sin mejora de stats pero la fatiga se recupera (+20).</div>
-  <div class="text-sm mt-3" style="color:var(--acento)">Fatiga: recuperación extra −20</div>
+  <div class="text-sm mt-3" style="color:var(--acento)">✅ Fatiga reducida −20 puntos en toda la plantilla</div>
 </div>`,[{label:'✅ Confirmar',cls:'btn-primary',action:cerrarModal}]);
     renderPage();
     return;
@@ -3717,6 +3767,15 @@ async function setEntrenamiento(foco){
 
   G.entrenamientoBonus=bonus;
   G.entrenamientoUsado=true;
+  G.entrenamientoFatigaAplicada=true; // marcar para no aplicar de nuevo en avanzarSemana
+
+  // Aplicar fatiga de entrenamiento INMEDIATAMENTE (feedback visual instantáneo)
+  const fatigaEntren = foco==='fisico'?8 : foco==='tecnico'?6 : 4;
+  const eqJE=miEquipo();
+  if(eqJE) eqJE.jugadores.forEach(j=>{
+    if((j.fatiga||0)<85) j.fatiga=clamp((j.fatiga||0)+fatigaEntren,0,100);
+  });
+
   guardarPartida();
 
   const nombresStats={fisico:'💪 físico y ⚡ velocidad',tecnico:'🎯 regate y 🥅 tiro',tactico:'🎽 pase y 🛡️ defensa'};
@@ -4948,6 +5007,62 @@ function renderPartido(){
 
 // Simula la jornada completa de TODAS las ligas excepto el partido ya jugado por el usuario.
 // partidoUsuario: {local, visitante} del partido que ya se ha simulado aparte (para no duplicarlo).
+// ===== RECUPERACIÓN SEMANAL DE FATIGA (compartida por todas las rutas post-jornada) =====
+// Se llama desde _procesarPostJornada (liga) y desde el bloque de copa en aplicarResultadoVisual.
+function _aplicarRecuperacionSemanal(eqJugador){
+  // Recuperación base para todos los jugadores
+  const _recuperar = (j) => {
+    if(j.lesionado){
+      if(j.diasLesion>0){
+        j.diasLesion--;
+        if(j.diasLesion<=0){ j.lesionado=false; j.diasLesion=0; j._inmuneLesion=2; }
+      } else {
+        j.lesionado=false; j._inmuneLesion=2;
+      }
+    }
+    if(j._inmuneLesion && j._inmuneLesion>0) j._inmuneLesion--;
+    const fat = j.fatiga||0;
+    const noJugo = j._noJugoUltimoPartido;
+    const recupBase = j.lesionado ? rand(18,25)
+      : fat >= 75 ? rand(20,28)
+      : noJugo    ? rand(18,24)
+      : rand(15,22);
+    j.fatiga = clamp(fat - recupBase, 0, 100);
+  };
+  G.equipos.forEach(e => e.jugadores.forEach(_recuperar));
+  G.jugadoresLibres.forEach(_recuperar);
+
+  // Entrenamiento del equipo del jugador
+  const _foco = G.entrenamiento || 'fisico';
+  const _usado = G.entrenamientoUsado;
+  const _fatigaYaAplicada = G.entrenamientoFatigaAplicada || false;
+  const _bonus = G.entrenamientoBonus;
+  if(eqJugador){
+    const fatigaEntren = _foco==='fisico'?8 : _foco==='tecnico'?6 : _foco==='tactico'?4 : 0;
+    eqJugador.jugadores.forEach(j=>{
+      if(!_usado){
+        j.fatiga = clamp((j.fatiga||0) - 5, 0, 100);
+      } else if(!_fatigaYaAplicada){
+        if(_foco==='descanso'){
+          j.fatiga = clamp((j.fatiga||0) - 20, 0, 100);
+        } else if((j.fatiga||0) < 85){
+          j.fatiga = clamp((j.fatiga||0) + fatigaEntren, 0, 100);
+        }
+      }
+      if(_usado && _foco!=='descanso' && (j.fatiga||0) < 85){
+        if(_foco==='fisico'){j.stats.fisico=clamp(j.stats.fisico+rand(0,1),1,99);j.stats.velocidad=clamp(j.stats.velocidad+rand(0,1),1,99);}
+        if(_foco==='tactico'){j.stats.pase=clamp(j.stats.pase+rand(0,1),1,99);j.stats.defensa=clamp(j.stats.defensa+rand(0,1),1,99);}
+        if(_foco==='tecnico'){j.stats.regate=clamp(j.stats.regate+rand(0,1),1,99);j.stats.tiro=clamp(j.stats.tiro+rand(0,1),1,99);}
+        if(_bonus){
+          if(_foco==='fisico'){j.stats.fisico=clamp(j.stats.fisico+1,1,99);j.stats.velocidad=clamp(j.stats.velocidad+1,1,99);}
+          if(_foco==='tactico'){j.stats.pase=clamp(j.stats.pase+1,1,99);j.stats.defensa=clamp(j.stats.defensa+1,1,99);}
+          if(_foco==='tecnico'){j.stats.regate=clamp(j.stats.regate+1,1,99);j.stats.tiro=clamp(j.stats.tiro+1,1,99);}
+        }
+      }
+    });
+  }
+}
+
 // ===== FUNCIÓN CENTRAL POST-JORNADA =====
 // Debe llamarse siempre que el usuario juega su partido (rápido, visual o al avanzar semana).
 // Garantiza que todos los caminos ejecuten exactamente las mismas operaciones.
@@ -4967,10 +5082,14 @@ function _procesarPostJornada(res, np, liga, jornadaIdx, eq){
   // Simular el resto de partidos de todas las ligas en esta jornada
   simularJornadaCompleta(liga, jornadaIdx, {local: np.local, visitante: np.visitante});
 
+  // ── Recuperación semanal de fatiga + entrenamiento ──
+  _aplicarRecuperacionSemanal(eq);
+
   // Flags de estado
   G._forzarPartidoVisual = null;
   G._partidoRecienJugado = true;
-  G.entrenamientoUsado   = false; // permitir entrenar de nuevo
+  G.entrenamientoUsado   = false;
+  G.entrenamientoFatigaAplicada = false;
 
   // Noticias, mercado, análisis y ojeador (igual que avanzarSemana)
   resolverOfertasPendientes();
@@ -6169,6 +6288,9 @@ function aplicarResultadoVisual(){
     G._forzarPartidoVisual=null;
     G._partidoRecienJugado=true;
     G.entrenamientoUsado=false;
+    G.entrenamientoFatigaAplicada=false;
+    // Recuperación semanal de fatiga (misma lógica que en liga)
+    _aplicarRecuperacionSemanal(miEquipo());
     resolverOfertasPendientes();
     procesarOfertasEntrantes();
     avanzarOjeador();
