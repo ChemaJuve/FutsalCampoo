@@ -33,6 +33,7 @@
 .light .stat-pill.oro{background:rgba(160,110,0,.15);color:#7a5400;}
 .light .stat-pill.rojo{background:rgba(160,30,40,.12);color:#8a1010;}
 .light .stat-pill.gris{background:rgba(60,80,100,.12);color:#3a4a5a;}
+.light .stat-pill.naranja{background:rgba(180,80,0,.12);color:#a04800;}
 /* Light mode: text-muted más oscuro */
 .light .text-muted{color:#3a4a5a;}
 /* Light mode: Foco actual label */
@@ -95,6 +96,7 @@ nav{flex:1;overflow-y:auto;padding:8px 0;}
 .stat-pill.azul{background:rgba(38,103,255,.2);color:#6fa3ef;}
 .stat-pill.oro{background:rgba(255,214,10,.2);color:#ffd60a;}
 .stat-pill.rojo{background:rgba(230,57,70,.2);color:#e63946;}
+.stat-pill.naranja{background:rgba(255,140,0,.2);color:var(--naranja,#ff8c00);}
 .stat-pill.gris{background:rgba(108,117,125,.15);color:var(--texto2);}
 .stat-bar-wrap{display:flex;align-items:center;gap:8px;margin:3px 0;}
 .stat-bar-label{font-size:.7rem;color:var(--texto2);width:70px;flex-shrink:0;}
@@ -534,7 +536,7 @@ nav{flex:1;overflow-y:auto;padding:8px 0;}
     onload="this.style.display='block';document.getElementById('splash-screen').classList.add('has-logo-img')"
     onerror="this.style.display='none'">
   <div class="splash-logo" id="splash-logo-text">Fútbol Sala Campoo</div>
-  <div class="splash-badge" id="splash-version-badge">v1.67</div>
+  <div class="splash-badge" id="splash-version-badge">v1.68</div>
   <div class="splash-btns">
     <button class="splash-btn splash-btn-primary" onclick="splashNuevaPartida()">⚽ Nueva partida</button>
     <label class="splash-btn splash-btn-secondary" style="cursor:pointer;text-align:center">
@@ -1145,7 +1147,7 @@ function generarJugador(id, equipoId, div){
     forma:rand(55,90), lesionado:false, diasLesion:0,
     amonestaciones:0, expulsado:false,
     goles:0, asistencias:0, pjugados:0, libre:false,
-    fatiga:rand(10,40), logPartidos:[]
+    fatiga:rand(10,40), logPartidos:[], minutosTotal:0
   };
 }
 
@@ -1739,8 +1741,10 @@ function simularPartido(eqLId, eqVId, esCopa=false, soloSimular=false){
       goles: gJug,
       asistencias: astJug,
       tarjeta: tarjJ.find(t=>t.tipo==='roja') ? '🟥' : tarjJ.find(t=>t.tipo==='amarilla') ? '🟨' : null,
-      resultado: esLocal ? `${golesL}-${golesV}` : `${golesV}-${golesL}`
+      resultado: esLocal ? `${golesL}-${golesV}` : `${golesV}-${golesL}`,
+      minutos: 40
     });
+    j.minutosTotal = (j.minutosTotal||0) + 40;
     j.logPartidos = j.logPartidos.slice(0, 10); // máx 10 entradas
   });
 
@@ -1926,6 +1930,35 @@ function actualizarMercadoDinamico(){
     });
   }
   G.jugadoresInsatisfechos=[...new Set([...G.jugadoresInsatisfechos,...nuevosInsatisfechos])];
+
+  // Evaluar descontento por falta de minutos en el equipo del usuario
+  // Un jugador del usuario que lleva 5+ partidos seguidos sin jugar (minutos=0 o sin entrada) puede quejarse
+  const miEq = miEquipo();
+  if(miEq){
+    miEq.jugadores.forEach(j=>{
+      if(j.pos==='POR') return; // los porteros suplentes no se quejan tan fácil
+      const ultimos = (j.logPartidos||[]).slice(0,5);
+      if(ultimos.length>=5){
+        const sinMinutos = ultimos.every(p=>(p.minutos||0)===0);
+        if(sinMinutos && !j.insatisfecho){
+          j.insatisfecho=true;
+          if(!G.jugadoresInsatisfechos.includes(j.id)) G.jugadoresInsatisfechos.push(j.id);
+          G.noticias.unshift({
+            id:Date.now()+rand(0,999),
+            tipo:'alerta',
+            texto:`😤 ${j.nombre} lleva 5 partidos sin jugar ni un minuto y está descontento`,
+            semana:G.semana
+          });
+        }
+        // Recuperar si ha jugado recientemente
+        const haJugadoReciente = ultimos.slice(0,3).some(p=>(p.minutos||0)>0);
+        if(haJugadoReciente && j.insatisfecho && ultimos[0]?.minutos>0){
+          j.insatisfecho=false;
+          G.jugadoresInsatisfechos=G.jugadoresInsatisfechos.filter(id=>id!==j.id);
+        }
+      }
+    });
+  }
 
   // Limpiar rumores viejos (>6 semanas)
   G.rumoresMercado=G.rumoresMercado.filter(r=>G.semana-r.semana<=6);
@@ -2442,7 +2475,7 @@ function iniciarNuevaTemporada(){
   // Reset estadísticas
   G.equipos.forEach(e=>{
     e.pj=0;e.g=0;e.e=0;e.p=0;e.gf=0;e.gc=0;e.puntos=0;
-    e.jugadores.forEach(j=>{j.goles=0;j.asistencias=0;j.pjugados=0;j.amonestaciones=0;j.expulsado=false;j.fatiga=clamp((j.fatiga||0)-20,0,100);j.logPartidos=[];});
+    e.jugadores.forEach(j=>{j.goles=0;j.asistencias=0;j.pjugados=0;j.amonestaciones=0;j.expulsado=false;j.fatiga=clamp((j.fatiga||0)-20,0,100);j.logPartidos=[];j.minutosTotal=0;});
   });
 
   // Regenerar ligas con los equipos ya actualizados
@@ -4384,6 +4417,7 @@ function renderPlantilla(eq){
     valor:(a,b)=>(a.valor-b.valor)*s.dir,
     goles:(a,b)=>((a.goles||0)-(b.goles||0))*s.dir,
     asistencias:(a,b)=>((a.asistencias||0)-(b.asistencias||0))*s.dir,
+    minutosTotal:(a,b)=>((a.minutosTotal||0)-(b.minutosTotal||0))*s.dir,
     pjugados:(a,b)=>((a.pjugados||0)-(b.pjugados||0))*s.dir,
   };
   const sorted=[...eq.jugadores].sort(SORT_FN[s.col]||SORT_FN.pos);
@@ -4418,6 +4452,7 @@ function renderPlantilla(eq){
       ${th('goles','⚽','Goles esta temporada')}
       ${th('asistencias','🎯','Asistencias esta temporada')}
       ${th('pjugados','PJ','Partidos jugados')}
+      ${th('minutosTotal',"Min'","Minutos jugados esta temporada")}
       <th>Estado</th><th>Situación</th><th></th>
     </tr></thead>
     <tbody>
@@ -4442,7 +4477,8 @@ function renderPlantilla(eq){
       <td class="text-oro fw-bold">${j.goles||0}</td>
       <td class="text-verde fw-bold">${j.asistencias||0}</td>
       <td class="text-muted">${j.pjugados||0}</td>
-      <td>${j.lesionado?'<span class="stat-pill rojo">🚑</span>':j.expulsado?'<span class="stat-pill rojo">🟥</span>':'<span class="stat-pill verde">OK</span>'}</td>
+      <td class="text-acento text-xs">${j.minutosTotal||0}'</td>
+      <td>${j.lesionado?'<span class="stat-pill rojo">🚑</span>':j.expulsado?'<span class="stat-pill rojo">🟥</span>':j.insatisfecho?'<span class="stat-pill naranja" title="Descontento por falta de minutos">😤</span>':'<span class="stat-pill verde">OK</span>'}</td>
       <td>${getTransferBadge(j)||'<span class="text-muted text-xs">—</span>'}</td>
       <td><button class="btn btn-sm btn-secondary" onclick="abrirJugador(${j.id})">Ver</button></td>
     </tr>`;}).join('')}
@@ -4831,7 +4867,7 @@ function renderPartido(){
       <div class="scroll-panel">
         ${lp.events?.map(ev=>`<div class="flex gap-2 mb-2 text-sm" style="align-items:flex-start">
           <span class="stat-pill gris" style="width:32px;text-align:center;flex-shrink:0">${ev.min}'</span>
-          <span>${ev.tipo==='gol'?'⚽':ev.tipo==='lesion'?'🚑':'⚠️'} <strong>${ev.jugador}</strong>${ev.asiste?` <span class="text-muted">(ast: ${ev.asiste})</span>`:''}
+          <span>${ev.tipo==='gol'?'⚽':ev.tipo==='lesion'?'🚑':'⚠️'} <strong>${ev.jugador}</strong>${(ev.asiste&&ev.asiste!==ev.jugador)?` <span class="text-muted">(ast: ${ev.asiste})</span>`:''}
           <span class="text-xs text-muted"> — ${G.equipos.find(e=>e.id===ev.equipo)?.nombre||''}</span></span>
         </div>`).join('')||'<div class="text-muted text-sm">Sin eventos</div>'}
       </div>
@@ -5120,17 +5156,27 @@ function iniciarPartidoVisual(){
     jugadoresEnCampo: null              // se calcula dinámicamente en pvTick
   };
 
+  // Calcular posición en liga de cada equipo
+  function getPosLiga(equipo){
+    if(!equipo) return null;
+    const clas = getClasificacion(equipo.div);
+    const pos = clas.findIndex(e=>e.id===equipo.id)+1;
+    return pos>0 ? {pos, div:equipo.div} : null;
+  }
+  const posLocal = getPosLiga(local);
+  const posVis = getPosLiga(vis);
+
   const bodyHTML=`<div id="pv-root">
   <div id="pv-marcador-wrap">
     <div style="text-align:center;font-size:.68rem;opacity:.5;margin-bottom:4px;letter-spacing:.5px">🏟️ ${res.estadio||'Pabellón'}${res.estadioCiudad?' · '+res.estadioCiudad:''}</div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <div style="flex:1;text-align:left"><div class="pv-team-name">${escudoHtml(local?.id,local?.emoji,'','1.1rem')} ${local?.nombre}</div><div class="text-xs" style="opacity:.45">Local</div></div>
+      <div style="flex:1;text-align:left"><div class="pv-team-name">${escudoHtml(local?.id,local?.emoji,'','1.1rem')} ${local?.nombre}</div><div class="text-xs" style="opacity:.45">Local${posLocal?` · <strong>${posLocal.pos}º</strong> (Div ${posLocal.div})`:''}</div></div>
       <div style="flex:1;text-align:center">
         <div class="pv-score"><span id="pv-gL">0</span><span class="pv-score-sep">—</span><span id="pv-gV">0</span></div>
         <div id="pv-timer">⏱ 0'</div>
         <div id="pv-half-badge">1ª PARTE</div>
       </div>
-      <div style="flex:1;text-align:right"><div class="pv-team-name">${vis?.nombre} ${escudoHtml(vis?.id,vis?.emoji,'','1.1rem')}</div><div class="text-xs" style="opacity:.45">Visit.</div></div>
+      <div style="flex:1;text-align:right"><div class="pv-team-name">${vis?.nombre} ${escudoHtml(vis?.id,vis?.emoji,'','1.1rem')}</div><div class="text-xs" style="opacity:.45">Visit.${posVis?` · <strong>${posVis.pos}º</strong> (Div ${posVis.div})`:''}</div></div>
     </div>
   </div>
 
@@ -5504,6 +5550,11 @@ function pvAplicarCambioAlin(saleId, entraId){
     const yaRegistrado = _pvState.jugadoresSalidos.some(s=>s.nombre===sale.nombre);
     if(!yaRegistrado) _pvState.jugadoresSalidos.push({nombre:sale.nombre, id:sale.id, equipoId:sale.equipoId, minSalida:_pvState.minActual});
   }
+  // Añadir el cambio a res.events para que la fatiga y estadísticas se calculen correctamente
+  if(_pvState.res){
+    if(!_pvState.res.events) _pvState.res.events=[];
+    _pvState.res.events.push({min:_pvState.minActual,tipo:'cambio',jugador:entra?.nombre||'?',sale:sale?.nombre||'?',equipo:eq.id,saleId:saleId,entraId:entraId});
+  }
   pvLogEvento({min:_pvState.minActual,tipo:'cambio',jugador:entra?.nombre||'?',sale:sale?.nombre||'?',equipo:eq.id});
   sonido('cambio');
   mostrarToast(`🔄 ${sale?.nombre} → ${entra?.nombre}`);
@@ -5553,6 +5604,11 @@ function pvAplicarCambio(){
     if(!yaRegistrado) _pvState.jugadoresSalidos.push({nombre:sale.nombre, id:sale.id, equipoId:sale.equipoId, minSalida:_pvState.minActual});
   }
   pvLogEvento({min:_pvState.minActual,tipo:'cambio',jugador:entra?.nombre||'?',sale:sale?.nombre||'?',equipo:eq.id});
+  // Añadir el cambio a res.events para que la fatiga y estadísticas se calculen correctamente
+  if(_pvState.res){
+    if(!_pvState.res.events) _pvState.res.events=[];
+    _pvState.res.events.push({min:_pvState.minActual,tipo:'cambio',jugador:entra?.nombre||'?',sale:sale?.nombre||'?',equipo:eq.id,saleId:_pvSaleId,entraId:_pvEntraId});
+  }
   sonido('cambio');
   mostrarToast(`🔄 ${sale?.nombre||'?'} → ${entra?.nombre||'?'}`);
   _pvSaleId=null;_pvEntraId=null;
@@ -5779,7 +5835,7 @@ function pvLogEvento(ev){
     const esMio=ev.equipo===eq?.id;
     cls=esMio?'ev-gol':'ev-gol-rival';
     icon='⚽';
-    texto=`<b>${ev.jugador}</b>${ev.asiste?` <span class="text-muted text-xs">(ast: ${ev.asiste})</span>`:''}
+    texto=`<b>${ev.jugador}</b>${(ev.asiste&&ev.asiste!==ev.jugador)?` <span class="text-muted text-xs">(ast: ${ev.asiste})</span>`:''}
       <span class="text-muted text-xs"> · ${G.equipos.find(e=>e.id===ev.equipo)?.nombre||'?'}</span>
       <span class="fw-bold" style="margin-left:auto;color:${esMio?'var(--acento2)':'var(--rojo)'}"> ${_pvState.gL}–${_pvState.gV}</span>`;
   } else if(ev.tipo==='lesion'){
@@ -5996,8 +6052,10 @@ function aplicarResultadoVisual(){
       goles: golesJ,
       asistencias: asistTotal,
       tarjeta: tarjJ.find(t=>t.tipo==='roja')?'🟥':tarjJ.find(t=>t.tipo==='amarilla')?'🟨':null,
-      resultado: esLocal ? `${res.golesL}-${res.golesV}` : `${res.golesV}-${res.golesL}`
+      resultado: esLocal ? `${res.golesL}-${res.golesV}` : `${res.golesV}-${res.golesL}`,
+      minutos: minJugado
     });
+    j.minutosTotal = (j.minutosTotal||0) + minJugado;
     j.logPartidos = j.logPartidos.slice(0,10);
   });
 
@@ -6127,7 +6185,7 @@ function abrirResumenPartidoCal(localId, visId, jornada){
       <span style="min-width:28px;font-size:.72rem;color:var(--texto2)">${ev.min}'</span>
       <span>⚽</span>
       <span class="${esGolMio?'text-acento2':'text-rojo'} fw-600">${ev.jugador}</span>
-      ${ev.asiste?`<span class="text-muted text-xs">(ast: ${ev.asiste})</span>`:''}
+      ${(ev.asiste&&ev.asiste!==ev.jugador)?`<span class="text-muted text-xs">(ast: ${ev.asiste})</span>`:''}
       <span class="text-muted text-xs" style="margin-left:auto">${eqEvNombre}</span>
     </div>`;
   }).join('') : '<div class="text-muted text-sm">Sin eventos de gol registrados</div>';
@@ -8341,7 +8399,7 @@ function generarJugadorOjeado(pos, edadMin, edadMax, div){
     forma: rand(55,90), lesionado: false, diasLesion: 0,
     amonestaciones: 0, expulsado: false,
     goles: 0, asistencias: 0, pjugados: 0,
-    libre: true, fatiga: rand(10,35), logPartidos: [],
+    libre: true, fatiga: rand(10,35), logPartidos: [], minutosTotal: 0,
     esCanterano: false, descubiertoPorOjeador: true
   };
 }
@@ -8821,7 +8879,8 @@ function abrirJugador(id){
       <div class="flex gap-2 mb-1"><span class="text-muted text-sm">Goles:</span><span class="fw-bold text-oro">${j.goles}</span></div>
       <div class="flex gap-2 mb-1"><span class="text-muted text-sm">Asistencias:</span><span class="fw-bold text-verde">${j.asistencias}</span></div>
       <div class="flex gap-2 mb-1"><span class="text-muted text-sm">Partidos:</span><span class="fw-bold">${j.pjugados}</span></div>
-      <div class="flex gap-2 mb-1"><span class="text-muted text-sm">Estado:</span><span>${j.lesionado?'🚑 Lesionado':j.expulsado?'🟥 Sancionado':'✅ Disponible'}</span></div>
+      <div class="flex gap-2 mb-1"><span class="text-muted text-sm">Minutos:</span><span class="fw-bold text-acento">${j.minutosTotal||0}'</span></div>
+      <div class="flex gap-2 mb-1"><span class="text-muted text-sm">Estado:</span><span>${j.lesionado?'🚑 Lesionado':j.expulsado?'🟥 Sancionado':j.insatisfecho?'😤 Descontento':'✅ Disponible'}</span></div>
       ${esMio?`<div class="divider"></div>
       <div class="flex gap-2 mb-2">
         <button class="btn btn-sm ${G.equipos.find(e=>e.id===G.equipoId)?.titulares?.includes(j.id)?'btn-danger':'btn-primary'}" onclick="toggleTitular(${j.id});cerrarModal()">
@@ -8846,6 +8905,7 @@ function abrirJugador(id){
       <span class="text-muted text-xs" style="min-width:32px">S${p.semana}</span>
       <span class="text-xs flex-1">vs ${p.rival}</span>
       <span class="fw-bold text-xs" style="min-width:36px">${p.resultado}</span>
+      <span class="text-muted text-xs" style="min-width:28px">${p.minutos!=null?p.minutos+"'":'—'}</span>
       ${p.goles>0?`<span class="stat-pill oro" style="font-size:.62rem">⚽${p.goles}</span>`:''}
       ${p.asistencias>0?`<span class="stat-pill verde" style="font-size:.62rem">🎯${p.asistencias}</span>`:''}
       ${p.tarjeta?`<span>${p.tarjeta}</span>`:''}
