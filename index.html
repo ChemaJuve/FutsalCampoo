@@ -328,7 +328,9 @@ nav{flex:1;overflow-y:auto;padding:8px 0;}
 /* ===== PARTIDO VISUAL - MEJORADO ===== */
 #pv-root{display:flex;flex-direction:column;gap:0;max-width:100%;}
 #pv-marcador-wrap{background:linear-gradient(135deg,var(--verde-oscuro),var(--azul));border-radius:12px;padding:16px;margin-bottom:12px;text-align:center;position:relative;overflow:hidden;}
+#pv-marcador-wrap.con-imagen{background-size:cover;background-position:center;}
 #pv-marcador-wrap::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Ccircle cx='30' cy='30' r='20'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");pointer-events:none;}
+#pv-marcador-wrap.con-imagen::before{background:linear-gradient(135deg,rgba(0,0,0,.55),rgba(0,0,30,.65));}
 .pv-team-name{font-size:.82rem;font-weight:600;opacity:.85;}
 .pv-score{font-family:'Barlow Condensed',sans-serif;font-size:3.5rem;font-weight:900;color:#fff;line-height:1;letter-spacing:4px;}
 .pv-score-sep{font-size:2rem;opacity:.5;margin:0 4px;}
@@ -536,7 +538,7 @@ nav{flex:1;overflow-y:auto;padding:8px 0;}
     onload="this.style.display='block';document.getElementById('splash-screen').classList.add('has-logo-img')"
     onerror="this.style.display='none'">
   <div class="splash-logo" id="splash-logo-text">Fútbol Sala Campoo</div>
-  <div class="splash-badge" id="splash-version-badge">v1.68</div>
+  <div class="splash-badge" id="splash-version-badge">v1.69</div>
   <div class="splash-btns">
     <button class="splash-btn splash-btn-primary" onclick="splashNuevaPartida()">⚽ Nueva partida</button>
     <label class="splash-btn splash-btn-secondary" style="cursor:pointer;text-align:center">
@@ -877,6 +879,46 @@ const ESTADIOS = [
   { nombre: 'Polideportivo de La Población',       ciudad: 'La Población',      capacidad: 450  },
   { nombre: 'Pabellón Municipal de Matamorosa',             ciudad: 'Matamorosa',      capacidad: 200  },
 ];
+
+// ===== IMAGEN DE ESTADIO =====
+// Convierte el nombre de un estadio en la ruta base de su imagen de fondo.
+// El fichero debe estar en images/ con el nombre: estadio_<nombre_normalizado>[.jpg/.png/etc.]
+// Ejemplo: 'Polideportivo Tito Carrera' → intenta 'images/estadio_Polideportivo_Tito_Carrera.jpg'
+// Si no existe, el marcador muestra el gradiente habitual sin errores visibles.
+function getEstadioImagenUrl(nombreEstadio){
+  if(!nombreEstadio) return null;
+  const slug = nombreEstadio
+    .replace(/\s+/g, '_')
+    .replace(/[áàä]/gi,'a').replace(/[éèë]/gi,'e')
+    .replace(/[íìï]/gi,'i').replace(/[óòö]/gi,'o')
+    .replace(/[úùü]/gi,'u').replace(/ñ/gi,'n')
+    .replace(/[^a-zA-Z0-9_\-\.]/g,'');
+  return `images/estadio_${slug}`;
+}
+
+// Aplica la imagen del estadio al wrapper del marcador visual.
+// Prueba extensiones .jpg, .jpeg, .png, .webp en orden.
+// Si ninguna existe simplemente no cambia el fondo.
+function aplicarFondoEstadio(nombreEstadio){
+  const wrap = document.getElementById('pv-marcador-wrap');
+  if(!wrap || !nombreEstadio) return;
+  const base = getEstadioImagenUrl(nombreEstadio);
+  if(!base) return;
+  const exts = ['jpg','jpeg','png','webp'];
+  let idx = 0;
+  function tryNext(){
+    if(idx >= exts.length) return; // ninguna funcionó → mantener gradiente
+    const url = `${base}.${exts[idx++]}`;
+    const img = new Image();
+    img.onload = () => {
+      wrap.style.backgroundImage = `url('${url}')`;
+      wrap.classList.add('con-imagen');
+    };
+    img.onerror = tryNext;
+    img.src = url;
+  }
+  tryNext();
+}
 
 // ===== PATROCINADORES =====
 const NOMBRES_PATROCINADORES = ['Calefacciones Corujo','Autos La Perla','Autoescuela Campoo','Laboratorios Pino','Seguros Tres Mares','Mecánicas Brañosera','Ferretería Los Pedros','Casa Vejo','Inmobiliaria Ceballos','Galletas Cuetara','Vive Campoo','Reical','Electricidad Serna','Ana Mari','Hiper Lí'];
@@ -1705,6 +1747,13 @@ function simularPartido(eqLId, eqVId, esCopa=false, soloSimular=false){
   events.sort((a,b)=>a.min-b.min);
 
   const todosJugs=[...local.titulares,...vis.titulares].map(id=>buscarJugador(id)).filter(Boolean);
+  const idsJugaron = new Set(todosJugs.map(j=>j.id));
+  // Marcar en todos los jugadores de ambos equipos si jugaron o no
+  if(!soloSimular){
+    [...local.jugadores,...vis.jugadores].forEach(j=>{
+      j._noJugoUltimoPartido = !idsJugaron.has(j.id);
+    });
+  }
   if(!soloSimular) todosJugs.forEach(j => {
     const fat = j.fatiga||0;
     const lesionRisk = 0.04 + (fat > 70 ? 0.03 : 0); // +30% riesgo si fatiga>70
@@ -1720,7 +1769,7 @@ function simularPartido(eqLId, eqVId, esCopa=false, soloSimular=false){
         events.push({min:minTarjeta+1, tipo:'roja', equipo:j.equipoId, jugador:j.nombre});
       }
     }
-    if(Math.random() < lesionRisk && !j.lesionado){
+    if(Math.random() < lesionRisk && !j.lesionado && !(j._inmuneLesion>0)){
       j.lesionado = true;
       j.diasLesion = rand(1, 4);
       events.push({min: rand(1, 40), tipo:'lesion', equipo:j.equipoId, jugador:j.nombre, semanas:j.diasLesion});
@@ -2141,12 +2190,30 @@ function avanzarSemana(){
   // Recuperación semanal de fatiga para TODOS los jugadores (titulares y banquillo)
   const recuperarFatiga = (j) => {
     if(j.lesionado){
-      if(j.diasLesion>0){ j.diasLesion--; if(j.diasLesion<=0) j.lesionado=false; }
+      if(j.diasLesion>0){
+        j.diasLesion--;
+        if(j.diasLesion<=0){
+          j.lesionado=false;
+          j.diasLesion=0;
+          j._inmuneLesion=2; // 2 semanas de inmunidad para no re-lesionarse inmediatamente
+        }
+      } else {
+        // Estaba lesionado con diasLesion=0 (estado inconsistente): sanar
+        j.lesionado=false;
+        j._inmuneLesion=2;
+      }
     }
-    // Todos recuperan 12-18 puntos por semana; los lesionados recuperan más (descanso forzado)
+    // Reducir contador de inmunidad
+    if(j._inmuneLesion && j._inmuneLesion>0) j._inmuneLesion--;
+    // Todos recuperan 15-22 puntos por semana; los lesionados recuperan más (descanso forzado)
     // Jugadores con fatiga muy alta (>=75) recuperan más para evitar que queden atascados
+    // Jugadores que no jugaron el último partido recuperan más
     const fat = j.fatiga||0;
-    const recupBase = j.lesionado ? rand(16,22) : fat >= 75 ? rand(16,22) : rand(12,18);
+    const noJugo = (j.pjugados===undefined || j._noJugoUltimoPartido);
+    const recupBase = j.lesionado ? rand(18,25)
+      : fat >= 75 ? rand(20,28)
+      : noJugo    ? rand(18,24)
+      : rand(15,22);
     j.fatiga = clamp(fat - recupBase, 0, 100);
   };
   G.equipos.forEach(eq => eq.jugadores.forEach(recuperarFatiga));
@@ -5206,6 +5273,9 @@ function iniciarPartidoVisual(){
     {label:'⚡ Simulación rápida', action:()=>{pvConfirmarResultado();}}
   );
 
+  // Aplicar imagen de fondo del estadio (si existe en images/)
+  setTimeout(()=>aplicarFondoEstadio(res.estadio), 50);
+
   sonido('pitido');
   // No arrancamos automáticamente — usuario pulsa ▶
 }
@@ -6042,7 +6112,7 @@ function aplicarResultadoVisual(){
     });
     // Lesiones
     const lesionEv = events.find(ev=>ev.tipo==='lesion'&&ev.jugador===j.nombre&&ev.equipo===equipoJ);
-    if(lesionEv && !j.lesionado){ j.lesionado=true; j.diasLesion=lesionEv.semanas||rand(1,4); }
+    if(lesionEv && !j.lesionado && !(j._inmuneLesion>0)){ j.lesionado=true; j.diasLesion=lesionEv.semanas||rand(1,4); }
     // Log de partido
     if(!j.logPartidos) j.logPartidos=[];
     const esLocal = j.equipoId===np.local;
