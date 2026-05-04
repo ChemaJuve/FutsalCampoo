@@ -904,6 +904,8 @@ function aplicarFondoEstadio(nombreEstadio){
   if(!wrap || !nombreEstadio) return;
   const base = getEstadioImagenUrl(nombreEstadio);
   if(!base) return;
+  _fondoEstadioActivo = true;
+  _fondoEstadioUrl = null;
   const exts = ['jpg','jpeg','png','webp'];
   let idx = 0;
   function tryNext(){
@@ -911,6 +913,7 @@ function aplicarFondoEstadio(nombreEstadio){
     const url = `${base}.${exts[idx++]}`;
     const img = new Image();
     img.onload = () => {
+      _fondoEstadioUrl = url;
       wrap.style.backgroundImage = `url('${url}')`;
       wrap.classList.add('con-imagen');
     };
@@ -918,6 +921,24 @@ function aplicarFondoEstadio(nombreEstadio){
     img.src = url;
   }
   tryNext();
+}
+
+// Alterna entre la imagen de fondo del estadio y el gradiente por defecto.
+let _fondoEstadioActivo = true;
+let _fondoEstadioUrl = null;
+function pvToggleFondo(){
+  const wrap = document.getElementById('pv-marcador-wrap');
+  const btn  = document.getElementById('pv-fondo-toggle');
+  if(!wrap) return;
+  _fondoEstadioActivo = !_fondoEstadioActivo;
+  if(_fondoEstadioActivo && _fondoEstadioUrl){
+    wrap.style.backgroundImage = `url('${_fondoEstadioUrl}')`;
+    wrap.classList.add('con-imagen');
+  } else {
+    wrap.style.backgroundImage = '';
+    wrap.classList.remove('con-imagen');
+  }
+  if(btn) btn.textContent = _fondoEstadioActivo ? '👁' : '👁\u200d🗨';
 }
 
 // ===== PATROCINADORES =====
@@ -4549,7 +4570,7 @@ function renderPlantilla(eq){
     goles:(a,b)=>((a.goles||0)-(b.goles||0))*s.dir,
     asistencias:(a,b)=>((a.asistencias||0)-(b.asistencias||0))*s.dir,
     minutosTotal:(a,b)=>((a.minutosTotal||0)-(b.minutosTotal||0))*s.dir,
-    pjugados:(a,b)=>((a.pjugados||0)-(b.pjugados||0))*s.dir,
+    salario:(a,b)=>(a.salario-b.salario)*s.dir,
   };
   const sorted=[...eq.jugadores].sort(SORT_FN[s.col]||SORT_FN.pos);
   const enTraspaso=eq.jugadores.filter(j=>j.transferStatus==='traspaso').length;
@@ -4580,6 +4601,7 @@ function renderPlantilla(eq){
       ${th('forma','Forma')}
       ${th('fatiga','Fatiga')}
       ${th('valor','Valor')}
+      ${th('salario','💰 Sal/sem','Salario semanal')}
       ${th('goles','⚽','Goles esta temporada')}
       ${th('asistencias','🎯','Asistencias esta temporada')}
       ${th('pjugados','PJ','Partidos jugados')}
@@ -4605,6 +4627,7 @@ function renderPlantilla(eq){
       <td><div class="flex gap-1" style="align-items:center"><div class="stat-bar" style="width:50px"><div class="stat-bar-fill" style="width:${j.forma}%"></div></div><span class="text-xs">${j.forma}</span></div></td>
       <td><div class="flex gap-1" style="align-items:center"><div class="stat-bar" style="width:50px"><div class="fatiga-bar-fill" style="width:${fat}%;height:6px;border-radius:3px;"></div></div><span class="text-xs" style="color:${fatCol}">${fat}${fat>=90?'🚫':''}</span></div></td>
       <td>${j.valor}€</td>
+      <td class="text-xs" style="color:var(--naranja);white-space:nowrap">${j.salario||0}€</td>
       <td class="text-oro fw-bold">${j.goles||0}</td>
       <td class="text-verde fw-bold">${j.asistencias||0}</td>
       <td class="text-muted">${j.pjugados||0}</td>
@@ -4778,15 +4801,15 @@ function sustituirJugador(salidaId, entradaId){
 }
 
 function renderEstadEquipo(eq){
-  const top5Gol=[...eq.jugadores].sort((a,b)=>b.goles-a.goles).slice(0,5);
-  const top5Ast=[...eq.jugadores].sort((a,b)=>b.asistencias-a.asistencias).slice(0,5);
+  const top5Gol=[...eq.jugadores].filter(j=>j.goles>0).sort((a,b)=>b.goles-a.goles).slice(0,5);
+  const top5Ast=[...eq.jugadores].filter(j=>j.asistencias>0).sort((a,b)=>b.asistencias-a.asistencias).slice(0,5);
   return `<div class="grid-2">
   <div class="card">
     <div class="card-header"><div class="card-title">⚽ Máximos goleadores</div></div>
     <table class="tabla">
       <thead><tr><th>#</th><th>Jugador</th><th>Pos</th><th>⚽</th><th>🎯</th></tr></thead>
       <tbody>
-      ${top5Gol.map((j,i)=>`<tr><td>${i+1}</td><td class="fw-600">${j.nombre}</td><td><span class="pos pos-${j.pos}">${j.pos}</span></td><td class="text-oro fw-bold">${j.goles}</td><td class="text-verde">${j.asistencias}</td></tr>`).join('')}
+      ${top5Gol.length ? top5Gol.map((j,i)=>`<tr><td>${i+1}</td><td class="fw-600">${j.nombre}</td><td><span class="pos pos-${j.pos}">${j.pos}</span></td><td class="text-oro fw-bold">${j.goles}</td><td class="text-verde">${j.asistencias}</td></tr>`).join('') : '<tr><td colspan="5" class="text-muted text-center" style="padding:14px">Sin goles aún</td></tr>'}
       </tbody>
     </table>
   </div>
@@ -4795,7 +4818,7 @@ function renderEstadEquipo(eq){
     <table class="tabla">
       <thead><tr><th>#</th><th>Jugador</th><th>Pos</th><th>🎯</th><th>⚽</th></tr></thead>
       <tbody>
-      ${top5Ast.map((j,i)=>`<tr><td>${i+1}</td><td class="fw-600">${j.nombre}</td><td><span class="pos pos-${j.pos}">${j.pos}</span></td><td class="text-verde fw-bold">${j.asistencias}</td><td class="text-oro">${j.goles}</td></tr>`).join('')}
+      ${top5Ast.length ? top5Ast.map((j,i)=>`<tr><td>${i+1}</td><td class="fw-600">${j.nombre}</td><td><span class="pos pos-${j.pos}">${j.pos}</span></td><td class="text-verde fw-bold">${j.asistencias}</td><td class="text-oro">${j.goles}</td></tr>`).join('') : '<tr><td colspan="5" class="text-muted text-center" style="padding:14px">Sin asistencias aún</td></tr>'}
       </tbody>
     </table>
   </div></div>`;
@@ -5362,7 +5385,8 @@ function iniciarPartidoVisual(){
   const posVis = getPosLiga(vis);
 
   const bodyHTML=`<div id="pv-root">
-  <div id="pv-marcador-wrap">
+  <div id="pv-marcador-wrap" style="position:relative">
+    <button id="pv-fondo-toggle" onclick="pvToggleFondo()" title="Alternar fondo del pabellón" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.25);border-radius:6px;padding:3px 7px;font-size:.78rem;cursor:pointer;z-index:10;color:#fff;line-height:1">👁</button>
     <div style="text-align:center;font-size:.68rem;opacity:.5;margin-bottom:4px;letter-spacing:.5px">🏟️ ${res.estadio||'Pabellón'}${res.estadioCiudad?' · '+res.estadioCiudad:''}</div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
       <div style="flex:1;text-align:left"><div class="pv-team-name">${escudoHtml(local?.id,local?.emoji,'','1.1rem')} ${local?.nombre}</div><div class="text-xs" style="opacity:.45">Local${posLocal?` · <strong>${posLocal.pos}º</strong> (Div ${posLocal.div})`:''}</div></div>
@@ -6212,9 +6236,9 @@ function aplicarResultadoVisual(){
     const golesJ = golesValidos.filter(ev=>
       ev.equipo===equipoJ && (ev.scorerId!=null ? ev.scorerId===j.id : ev.jugador===j.nombre)
     ).length;
-    // Contar asistencias: usar assistId si está disponible, sino nombre (en cualquier equipo)
+    // Contar asistencias: assistId preferido; fallback por nombre filtrando por equipo
     const asistTotal = golesValidos.filter(ev=>
-      ev.assistId!=null ? ev.assistId===j.id : ev.asiste===j.nombre
+      ev.equipo===equipoJ && (ev.assistId!=null ? ev.assistId===j.id : (ev.asiste===j.nombre && ev.asiste!=null))
     ).length;
     const tarjJ  = tarjetas.filter(t=>t.jugador===j.nombre&&t.equipo===equipoJ);
     j.goles      = (j.goles||0) + golesJ;
